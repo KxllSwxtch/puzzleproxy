@@ -23,7 +23,7 @@ class KCarService:
     """Service for interacting with KCar API"""
     
     BASE_URL = "https://www.kcar.com"
-    API_BASE = f"{BASE_URL}/bc/navi/api"
+    API_BASE = "https://api.kcar.com"
     SEARCH_URL = f"{BASE_URL}/bc/search"
     
     # Required headers for KCar API
@@ -135,15 +135,11 @@ class KCarService:
     
     async def get_manufacturers(self) -> KCarManufacturersResponse:
         """Get all manufacturers"""
-        url = f"{self.API_BASE}/v1/select-menus"
+        url = f"{self.API_BASE}/bc/search/group/mnuftr"
         
         payload = {
-            "service": "menuRowsFnc",
-            "menuCd": "wr_eq_mnuftr_cd",
-            "params": {
-                "wr_eq_sell_dcd": "ALL",
-                "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd"
-            }
+            "wr_eq_sell_dcd": "ALL",
+            "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd"
         }
         
         data = await self._make_request("POST", url, json_data=payload)
@@ -151,16 +147,12 @@ class KCarService:
     
     async def get_model_groups(self, manufacturer_code: str) -> KCarModelGroupsResponse:
         """Get model groups for a manufacturer"""
-        url = f"{self.API_BASE}/v1/select-menus"
+        url = f"{self.API_BASE}/bc/search/group/modelGrp"
         
         payload = {
-            "service": "menuRowsFnc",
-            "menuCd": "wr_eq_model_grp_cd",
-            "params": {
-                "wr_eq_sell_dcd": "ALL",
-                "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd",
-                "wr_eq_mnuftr_cd": manufacturer_code
-            }
+            "wr_eq_sell_dcd": "ALL",
+            "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd",
+            "wr_eq_mnuftr_cd": manufacturer_code
         }
         
         data = await self._make_request("POST", url, json_data=payload)
@@ -172,17 +164,13 @@ class KCarService:
         model_group_code: str
     ) -> KCarModelsResponse:
         """Get models for a model group"""
-        url = f"{self.API_BASE}/v1/select-menus"
+        url = f"{self.API_BASE}/bc/search/group/model"
         
         payload = {
-            "service": "menuRowsFnc",
-            "menuCd": "wr_eq_model_cd",
-            "params": {
-                "wr_eq_sell_dcd": "ALL",
-                "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd",
-                "wr_eq_mnuftr_cd": manufacturer_code,
-                "wr_eq_model_grp_cd": model_group_code
-            }
+            "wr_eq_sell_dcd": "ALL",
+            "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd",
+            "wr_eq_mnuftr_cd": manufacturer_code,
+            "wr_eq_model_grp_cd": model_group_code
         }
         
         data = await self._make_request("POST", url, json_data=payload)
@@ -195,18 +183,14 @@ class KCarService:
         model_code: str
     ) -> KCarGradesResponse:
         """Get grades for a model"""
-        url = f"{self.API_BASE}/v1/select-menus"
+        url = f"{self.API_BASE}/bc/search/group/grd"
         
         payload = {
-            "service": "menuRowsFnc",
-            "menuCd": "wr_eq_grd_cd",
-            "params": {
-                "wr_eq_sell_dcd": "ALL",
-                "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd",
-                "wr_eq_mnuftr_cd": manufacturer_code,
-                "wr_eq_model_grp_cd": model_group_code,
-                "wr_eq_model_cd": model_code
-            }
+            "wr_eq_sell_dcd": "ALL",
+            "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd",
+            "wr_eq_mnuftr_cd": manufacturer_code,
+            "wr_eq_model_grp_cd": model_group_code,
+            "wr_eq_model_cd": model_code
         }
         
         data = await self._make_request("POST", url, json_data=payload)
@@ -220,19 +204,15 @@ class KCarService:
         grade_code: str
     ) -> KCarGradeDetailsResponse:
         """Get grade details for a grade"""
-        url = f"{self.API_BASE}/v1/select-menus"
+        url = f"{self.API_BASE}/bc/search/group/grdDtl"
         
         payload = {
-            "service": "menuRowsFnc",
-            "menuCd": "wr_eq_grd_dtl_cd",
-            "params": {
-                "wr_eq_sell_dcd": "ALL",
-                "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd",
-                "wr_eq_mnuftr_cd": manufacturer_code,
-                "wr_eq_model_grp_cd": model_group_code,
-                "wr_eq_model_cd": model_code,
-                "wr_eq_grd_cd": grade_code
-            }
+            "wr_eq_sell_dcd": "ALL",
+            "wr_in_multi_columns": "cntr_rgn_cd|cntr_cd",
+            "wr_eq_mnuftr_cd": manufacturer_code,
+            "wr_eq_model_grp_cd": model_group_code,
+            "wr_eq_model_cd": model_code,
+            "wr_eq_grd_cd": grade_code
         }
         
         data = await self._make_request("POST", url, json_data=payload)
