@@ -42,15 +42,30 @@ class KCarHTMLParser:
         try:
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find car listings - KCar uses specific class names for car cards
-            car_cards = soup.find_all('div', class_='car-item') or \
-                       soup.find_all('article', class_='car-card') or \
-                       soup.find_all('div', {'data-car-id': True})
+            # Try multiple selector strategies for KCar's actual structure
             
-            # If no car cards found, try to find by common patterns
+            # Strategy 1: Look for data attributes (most reliable)
+            car_cards = soup.find_all(['div', 'article', 'li'], attrs={'data-car-seq': True})
+            
+            # Strategy 2: Common class patterns for car listings
             if not car_cards:
-                # Look for elements with car-related classes
-                car_cards = soup.find_all('div', class_=re.compile(r'car|vehicle|listing'))
+                car_cards = soup.find_all('div', class_='list_car') or \
+                           soup.find_all('li', class_='car_item') or \
+                           soup.find_all('div', class_='car-list-item') or \
+                           soup.find_all('article', class_='car-card')
+            
+            # Strategy 3: Look for link patterns that contain car IDs
+            if not car_cards:
+                car_links = soup.find_all('a', href=re.compile(r'/bc/b/carDetail/'))
+                car_cards = [link.parent for link in car_links if link.parent]
+            
+            # Strategy 4: Find by common Korean car listing patterns
+            if not car_cards:
+                car_cards = soup.find_all('div', class_=re.compile(r'car|vehicle|listing|item'))
+                # Filter out navigation and header elements
+                car_cards = [c for c in car_cards if len(c.get_text(strip=True)) > 50]
+            
+            logger.info(f"Found {len(car_cards)} potential car cards")
             
             for card in car_cards:
                 try:
@@ -63,7 +78,10 @@ class KCarHTMLParser:
                     
             # If no cars found using card method, try extracting from script data
             if not cars:
+                logger.info("No cars found with HTML parsing, trying script data extraction")
                 cars = KCarHTMLParser._extract_from_script_data(soup)
+                
+            logger.info(f"Successfully parsed {len(cars)} cars")
                 
         except Exception as e:
             logger.error(f"Error parsing search results: {e}")
