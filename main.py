@@ -486,6 +486,7 @@ async def health_check():
         "services": {
             "encar_api": "✅ Active (cars) - with proxy",
             "kbchachacha_cars": "✅ Active (Korean car marketplace) - with proxy",
+            "kcar_cars": "✅ Active (KCar marketplace) - with proxy",
             "parser_engine": "BeautifulSoup4 + lxml",
         },
     }
@@ -510,6 +511,15 @@ async def root():
                 "/api/kbchachacha/car/{car_seq}",
                 "/api/kbchachacha/test",
             ],
+            "kcar": [
+                "/api/kcar/manufacturers",
+                "/api/kcar/model-groups/{manufacturer_code}",
+                "/api/kcar/models/{manufacturer_code}/{model_group_code}",
+                "/api/kcar/grades/{manufacturer_code}/{model_group_code}/{model_code}",
+                "/api/kcar/grade-details/{manufacturer_code}/{model_group_code}/{model_code}/{grade_code}",
+                "/api/kcar/search",
+                "/api/kcar/car/{car_id}",
+            ],
             "system": ["/health"],
         },
         "features": [
@@ -527,12 +537,14 @@ async def root():
         "platforms": {
             "encar.com": "Car listings and navigation (via proxy)",
             "kbchachacha.com": "Korean car marketplace - manufacturers, models, search (via proxy)",
+            "kcar.com": "KCar marketplace - hierarchical filtering, HTML scraping (via proxy)",
         },
         "providers": [config["provider"] for config in PROXY_CONFIGS],
         "total_proxies": len(PROXY_CONFIGS),
         "api_status": {
             "cars_core": "✅ Fully operational",
             "kbchachacha_cars": "✅ Fully operational (Korean car marketplace integration)",
+            "kcar_cars": "✅ Fully operational (KCar marketplace with HTML scraping)",
         },
     }
 
@@ -1171,6 +1183,219 @@ async def get_kbchachacha_car_details(car_seq: str):
         raise
     except Exception as e:
         logger.error(f"Error in KBChaChaCha car details endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+# ============================================================================
+# KCar API Endpoints
+# ============================================================================
+
+from schemas.kcar import (
+    KCarManufacturersResponse,
+    KCarModelGroupsResponse,
+    KCarModelsResponse,
+    KCarGradesResponse,
+    KCarGradeDetailsResponse,
+    KCarSearchFilters,
+    KCarParsedCar
+)
+from services.kcar_service import KCarService
+
+# Initialize KCar service WITH proxy for Korean site access
+kcar_service = KCarService(proxy_client)
+
+
+@app.get("/api/kcar/manufacturers", response_model=KCarManufacturersResponse)
+async def get_kcar_manufacturers():
+    """
+    Get list of car manufacturers from KCar
+    
+    Returns manufacturers with car counts for each.
+    
+    **Example Response:**
+    ```json
+    {
+        "success": true,
+        "data": [
+            {"mnuftrNm": "현대", "mnuftrCd": "H001", "count": 15234},
+            {"mnuftrNm": "기아", "mnuftrCd": "K001", "count": 12456}
+        ]
+    }
+    ```
+    """
+    try:
+        result = await kcar_service.get_manufacturers()
+        return result
+    except Exception as e:
+        logger.error(f"Error in KCar manufacturers endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get("/api/kcar/model-groups/{manufacturer_code}", response_model=KCarModelGroupsResponse)
+async def get_kcar_model_groups(manufacturer_code: str):
+    """
+    Get model groups for specific manufacturer
+    
+    **Parameters:**
+    - **manufacturer_code**: Manufacturer code (e.g., "H001" for 현대)
+    
+    **Returns:**
+    List of model groups (e.g., 아반떼, 쏘나타, 그랜저)
+    """
+    try:
+        result = await kcar_service.get_model_groups(manufacturer_code)
+        return result
+    except Exception as e:
+        logger.error(f"Error in KCar model groups endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get("/api/kcar/models/{manufacturer_code}/{model_group_code}", response_model=KCarModelsResponse)
+async def get_kcar_models(manufacturer_code: str, model_group_code: str):
+    """
+    Get models for specific model group
+    
+    **Parameters:**
+    - **manufacturer_code**: Manufacturer code
+    - **model_group_code**: Model group code
+    
+    **Returns:**
+    List of models with production years
+    """
+    try:
+        result = await kcar_service.get_models(manufacturer_code, model_group_code)
+        return result
+    except Exception as e:
+        logger.error(f"Error in KCar models endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get("/api/kcar/grades/{manufacturer_code}/{model_group_code}/{model_code}", response_model=KCarGradesResponse)
+async def get_kcar_grades(manufacturer_code: str, model_group_code: str, model_code: str):
+    """
+    Get grades for specific model
+    
+    **Parameters:**
+    - **manufacturer_code**: Manufacturer code
+    - **model_group_code**: Model group code
+    - **model_code**: Model code
+    
+    **Returns:**
+    List of grades (e.g., "가솔린 2.5", "가솔린 3.5 2WD")
+    """
+    try:
+        result = await kcar_service.get_grades(manufacturer_code, model_group_code, model_code)
+        return result
+    except Exception as e:
+        logger.error(f"Error in KCar grades endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get("/api/kcar/grade-details/{manufacturer_code}/{model_group_code}/{model_code}/{grade_code}", response_model=KCarGradeDetailsResponse)
+async def get_kcar_grade_details(
+    manufacturer_code: str,
+    model_group_code: str,
+    model_code: str,
+    grade_code: str
+):
+    """
+    Get grade details for specific grade
+    
+    **Parameters:**
+    - **manufacturer_code**: Manufacturer code
+    - **model_group_code**: Model group code  
+    - **model_code**: Model code
+    - **grade_code**: Grade code
+    
+    **Returns:**
+    List of grade details (e.g., "프리미엄", "캘리그래피")
+    """
+    try:
+        result = await kcar_service.get_grade_details(
+            manufacturer_code, model_group_code, model_code, grade_code
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error in KCar grade details endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get("/api/kcar/search")
+async def search_kcar_cars(
+    manufacturer_code: Optional[str] = Query(None, alias="mnuftrCd"),
+    model_group_code: Optional[str] = Query(None, alias="modelGrpCd"),
+    model_code: Optional[str] = Query(None, alias="modelCd"),
+    grade_code: Optional[str] = Query(None, alias="grdCd"),
+    grade_detail_code: Optional[str] = Query(None, alias="grdDtlCd"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(27, ge=1, le=100)
+):
+    """
+    Search cars on KCar using HTML scraping
+    
+    **Parameters:**
+    - **manufacturer_code**: Filter by manufacturer
+    - **model_group_code**: Filter by model group
+    - **model_code**: Filter by model
+    - **grade_code**: Filter by grade
+    - **grade_detail_code**: Filter by grade detail
+    - **page**: Page number (default: 1)
+    - **limit**: Items per page (default: 27)
+    
+    **Returns:**
+    List of parsed cars from KCar HTML
+    
+    **Example Usage:**
+    - All cars: `/api/kcar/search`
+    - 현대 cars: `/api/kcar/search?mnuftrCd=H001`
+    - Specific model: `/api/kcar/search?mnuftrCd=H001&modelGrpCd=MG001`
+    """
+    try:
+        filters = KCarSearchFilters(
+            manufacturer_code=manufacturer_code,
+            model_group_code=model_group_code,
+            model_code=model_code,
+            grade_code=grade_code,
+            grade_detail_code=grade_detail_code,
+            page=page,
+            limit=limit
+        )
+        
+        cars = await kcar_service.search_cars_html(filters, page, limit)
+        
+        return {
+            "success": True,
+            "data": [car.dict() for car in cars],
+            "total": len(cars),
+            "page": page,
+            "limit": limit
+        }
+    except Exception as e:
+        logger.error(f"Error in KCar search endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get("/api/kcar/car/{car_id}")
+async def get_kcar_car_details(car_id: str):
+    """
+    Get detailed information for a specific car
+    
+    **Parameters:**
+    - **car_id**: Car ID from search results
+    
+    **Returns:**
+    Car details (currently returns placeholder data)
+    """
+    try:
+        result = await kcar_service.get_car_details(car_id)
+        if result:
+            return {"success": True, "data": result}
+        else:
+            raise HTTPException(status_code=404, detail="Car not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in KCar car details endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 

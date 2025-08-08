@@ -1,0 +1,589 @@
+{
+  "message": null,
+  "data": [
+    {
+      "path": "001",
+      "carType": "KOR",
+      "mnuftrNm": "현대",
+      "mnuftrEnm": "Hyundai",
+      "mnuftrType": "MAKE_TYPE010",
+      "count": 2707,
+      "mnuftrCd": "001",
+      "pathNm": "현대"
+    },
+    {
+      "path": "007",
+      "carType": "KOR",
+      "mnuftrNm": "제네시스",
+      "mnuftrEnm": "Genesis",
+      "mnuftrType": "MAKE_TYPE010",
+      "count": 608,
+      "mnuftrCd": "007",
+      "pathNm": "제네시스"
+    },
+    {
+      "path": "002",
+      "carType": "KOR",
+      "mnuftrNm": "기아",
+      "mnuftrEnm": "Kia",
+      "mnuftrType": "MAKE_TYPE010",
+      "count": 2459,
+      "mnuftrCd": "002",
+      "pathNm": "기아"
+    },
+    {
+      "path": "003",
+      "carType": "KOR",
+      "mnuftrNm": "쉐보레(GM대우)",
+      "mnuftrEnm": "Chevrolet(GMDaewoo)",
+      "mnuftrType": "MAKE_TYPE010",
+      "count": 573,
+      "mnuftrCd": "003",
+      "pathNm": "쉐보레(GM대우)"
+    },
+    {
+      "path": "005",
+      "carType": "KOR",
+      "mnuftrNm": "르노코리아(삼성)",
+      "mnuftrEnm": "Renault Korea Motors-Samsung",
+      "mnuftrType": "MAKE_TYPE010",
+      "count": 518,
+      "mnuftrCd": "005",
+      "pathNm": "르노코리아(삼성)"
+    },
+    {
+      "path": "004",
+      "carType": "KOR",
+      "mnuftrNm": "KG모빌리티(쌍용)",
+      "mnuftrEnm": "KG Mobility(Ssangyong)",
+      "mnuftrType": "MAKE_TYPE010",
+      "count": 433,
+      "mnuftrCd": "004",
+      "pathNm": "KG모빌리티(쌍용)"
+    },
+    {
+      "path": "088",
+      "carType": "KOR",
+      "mnuftrNm": "대우버스",
+      "mnuftrEnm": "Daewoo bus",
+      "mnuftrType": "MAKE_TYPE010",
+      "count": 0,
+      "mnuftrCd": "088",
+      "pathNm": "대우버스"
+    },
+    {
+      "path": "006",
+      "carType": "KOR",
+      "mnuftrNm": "기타 제조사",
+      "mnuftrEnm": "Others",
+      "mnuftrType": "MAKE_TYPE010",
+      "count": 0,
+      "mnuftrCd": "006",
+      "pathNm": "기타 제조사"
+    },
+    {
+      "path": "013",
+      "carType": "IMP",
+      "mnuftrNm": "벤츠",
+      "mnuftrEnm": "Mercedes-Benz",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 643,
+      "mnuftrCd": "013",
+      "pathNm": "벤츠"
+    },
+    {
+      "path": "012",
+      "carType": "IMP",
+      "mnuftrNm": "BMW",
+      "mnuftrEnm": "BMW",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 681,
+      "mnuftrCd": "012",
+      "pathNm": "BMW"
+    },
+    {
+      "path": "011",
+      "carType": "IMP",
+      "mnuftrNm": "아우디",
+      "mnuftrEnm": "Audi",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 90,
+      "mnuftrCd": "011",
+      "pathNm": "아우디"
+    },
+    {
+      "path": "014",
+      "carType": "IMP",
+      "mnuftrNm": "폭스바겐",
+      "mnuftrEnm": "Volkswagen",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 25,
+      "mnuftrCd": "014",
+      "pathNm": "폭스바겐"
+    },
+    {
+      "path": "054",
+      "carType": "IMP",
+      "mnuftrNm": "미니",
+      "mnuftrEnm": "Mini",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 142,
+      "mnuftrCd": "054",
+      "pathNm": "미니"
+    },
+    {
+      "path": "017",
+      "carType": "IMP",
+      "mnuftrNm": "볼보",
+      "mnuftrEnm": "Volvo",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 137,
+      "mnuftrCd": "017",
+      "pathNm": "볼보"
+    },
+    {
+      "path": "091",
+      "carType": "IMP",
+      "mnuftrNm": "폴스타",
+      "mnuftrEnm": "Polestar",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "091",
+      "pathNm": "폴스타"
+    },
+    {
+      "path": "015",
+      "carType": "IMP",
+      "mnuftrNm": "포르쉐",
+      "mnuftrEnm": "Porsche",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 14,
+      "mnuftrCd": "015",
+      "pathNm": "포르쉐"
+    },
+    {
+      "path": "035",
+      "carType": "IMP",
+      "mnuftrNm": "렉서스",
+      "mnuftrEnm": "Lexus",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 64,
+      "mnuftrCd": "035",
+      "pathNm": "렉서스"
+    },
+    {
+      "path": "031",
+      "carType": "IMP",
+      "mnuftrNm": "도요타",
+      "mnuftrEnm": "Toyota",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 37,
+      "mnuftrCd": "031",
+      "pathNm": "도요타"
+    },
+    {
+      "path": "058",
+      "carType": "IMP",
+      "mnuftrNm": "인피니티",
+      "mnuftrEnm": "Infinity",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 9,
+      "mnuftrCd": "058",
+      "pathNm": "인피니티"
+    },
+    {
+      "path": "027",
+      "carType": "IMP",
+      "mnuftrNm": "혼다",
+      "mnuftrEnm": "Honda",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 10,
+      "mnuftrCd": "027",
+      "pathNm": "혼다"
+    },
+    {
+      "path": "033",
+      "carType": "IMP",
+      "mnuftrNm": "닛산",
+      "mnuftrEnm": "Nissan",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 4,
+      "mnuftrCd": "033",
+      "pathNm": "닛산"
+    },
+    {
+      "path": "030",
+      "carType": "IMP",
+      "mnuftrNm": "미쯔비시",
+      "mnuftrEnm": "Mitsubishi",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "030",
+      "pathNm": "미쯔비시"
+    },
+    {
+      "path": "087",
+      "carType": "IMP",
+      "mnuftrNm": "테슬라",
+      "mnuftrEnm": "Tesla",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 45,
+      "mnuftrCd": "087",
+      "pathNm": "테슬라"
+    },
+    {
+      "path": "024",
+      "carType": "IMP",
+      "mnuftrNm": "포드",
+      "mnuftrEnm": "Ford",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 33,
+      "mnuftrCd": "024",
+      "pathNm": "포드"
+    },
+    {
+      "path": "083",
+      "carType": "IMP",
+      "mnuftrNm": "지프",
+      "mnuftrEnm": "Jeep",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 49,
+      "mnuftrCd": "083",
+      "pathNm": "지프"
+    },
+    {
+      "path": "043",
+      "carType": "IMP",
+      "mnuftrNm": "캐딜락",
+      "mnuftrEnm": "Cadillac",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 5,
+      "mnuftrCd": "043",
+      "pathNm": "캐딜락"
+    },
+    {
+      "path": "023",
+      "carType": "IMP",
+      "mnuftrNm": "크라이슬러",
+      "mnuftrEnm": "Chrysler",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "023",
+      "pathNm": "크라이슬러"
+    },
+    {
+      "path": "044",
+      "carType": "IMP",
+      "mnuftrNm": "링컨",
+      "mnuftrEnm": "Lincoln",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 29,
+      "mnuftrCd": "044",
+      "pathNm": "링컨"
+    },
+    {
+      "path": "081",
+      "carType": "IMP",
+      "mnuftrNm": "스마트",
+      "mnuftrEnm": "Smart",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "081",
+      "pathNm": "스마트"
+    },
+    {
+      "path": "053",
+      "carType": "IMP",
+      "mnuftrNm": "마세라티",
+      "mnuftrEnm": "Maserati",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 5,
+      "mnuftrCd": "053",
+      "pathNm": "마세라티"
+    },
+    {
+      "path": "019",
+      "carType": "IMP",
+      "mnuftrNm": "재규어",
+      "mnuftrEnm": "Jaguar",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "019",
+      "pathNm": "재규어"
+    },
+    {
+      "path": "020",
+      "carType": "IMP",
+      "mnuftrNm": "랜드로버",
+      "mnuftrEnm": "Land Rover",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 9,
+      "mnuftrCd": "020",
+      "pathNm": "랜드로버"
+    },
+    {
+      "path": "021",
+      "carType": "IMP",
+      "mnuftrNm": "푸조",
+      "mnuftrEnm": "Peugeot",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 9,
+      "mnuftrCd": "021",
+      "pathNm": "푸조"
+    },
+    {
+      "path": "022",
+      "carType": "IMP",
+      "mnuftrNm": "시트로엥",
+      "mnuftrEnm": "Citroen",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 3,
+      "mnuftrCd": "022",
+      "pathNm": "시트로엥"
+    },
+    {
+      "path": "018",
+      "carType": "IMP",
+      "mnuftrNm": "피아트",
+      "mnuftrEnm": "Fiat",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 1,
+      "mnuftrCd": "018",
+      "pathNm": "피아트"
+    },
+    {
+      "path": "041",
+      "carType": "IMP",
+      "mnuftrNm": "페라리",
+      "mnuftrEnm": "Ferrari",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 3,
+      "mnuftrCd": "041",
+      "pathNm": "페라리"
+    },
+    {
+      "path": "049",
+      "carType": "IMP",
+      "mnuftrNm": "람보르기니",
+      "mnuftrEnm": "Lamborghini",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "049",
+      "pathNm": "람보르기니"
+    },
+    {
+      "path": "084",
+      "carType": "IMP",
+      "mnuftrNm": "맥라렌",
+      "mnuftrEnm": "Mclaren",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "084",
+      "pathNm": "맥라렌"
+    },
+    {
+      "path": "080",
+      "carType": "IMP",
+      "mnuftrNm": "마이바흐",
+      "mnuftrEnm": "Maybach",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "080",
+      "pathNm": "마이바흐"
+    },
+    {
+      "path": "050",
+      "carType": "IMP",
+      "mnuftrNm": "벤틀리",
+      "mnuftrEnm": "Bentley",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "050",
+      "pathNm": "벤틀리"
+    },
+    {
+      "path": "047",
+      "carType": "IMP",
+      "mnuftrNm": "롤스로이스",
+      "mnuftrEnm": "Rolls-Royce",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "047",
+      "pathNm": "롤스로이스"
+    },
+    {
+      "path": "056",
+      "carType": "IMP",
+      "mnuftrNm": "GMC",
+      "mnuftrEnm": "GMC",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "056",
+      "pathNm": "GMC"
+    },
+    {
+      "path": "034",
+      "carType": "IMP",
+      "mnuftrNm": "닷지",
+      "mnuftrEnm": "Dodge",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "034",
+      "pathNm": "닷지"
+    },
+    {
+      "path": "038",
+      "carType": "IMP",
+      "mnuftrNm": "쉐보레",
+      "mnuftrEnm": "Chevrolet",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "038",
+      "pathNm": "쉐보레"
+    },
+    {
+      "path": "048",
+      "carType": "IMP",
+      "mnuftrNm": "험머",
+      "mnuftrEnm": "Hummer",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "048",
+      "pathNm": "험머"
+    },
+    {
+      "path": "037",
+      "carType": "IMP",
+      "mnuftrNm": "스즈키",
+      "mnuftrEnm": "Suzuki",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "037",
+      "pathNm": "스즈키"
+    },
+    {
+      "path": "029",
+      "carType": "IMP",
+      "mnuftrNm": "마쯔다",
+      "mnuftrEnm": "Mazda",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "029",
+      "pathNm": "마쯔다"
+    },
+    {
+      "path": "028",
+      "carType": "IMP",
+      "mnuftrNm": "이스즈",
+      "mnuftrEnm": "Isuzu",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "028",
+      "pathNm": "이스즈"
+    },
+    {
+      "path": "070",
+      "carType": "IMP",
+      "mnuftrNm": "애스턴마틴",
+      "mnuftrEnm": "Astonmartin",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "070",
+      "pathNm": "애스턴마틴"
+    },
+    {
+      "path": "052",
+      "carType": "IMP",
+      "mnuftrNm": "스바루",
+      "mnuftrEnm": "Subaru",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "052",
+      "pathNm": "스바루"
+    },
+    {
+      "path": "016",
+      "carType": "IMP",
+      "mnuftrNm": "사브",
+      "mnuftrEnm": "Saab",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "016",
+      "pathNm": "사브"
+    },
+    {
+      "path": "090",
+      "carType": "IMP",
+      "mnuftrNm": "동풍소콘",
+      "mnuftrEnm": "DFSK",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "090",
+      "pathNm": "동풍소콘"
+    },
+    {
+      "path": "086",
+      "carType": "IMP",
+      "mnuftrNm": "북기은상",
+      "mnuftrEnm": "Baic Yinxiang",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "086",
+      "pathNm": "북기은상"
+    },
+    {
+      "path": "085",
+      "carType": "IMP",
+      "mnuftrNm": "포톤",
+      "mnuftrEnm": "FOTON",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "085",
+      "pathNm": "포톤"
+    },
+    {
+      "path": "093",
+      "carType": "IMP",
+      "mnuftrNm": "BYD",
+      "mnuftrEnm": "BYD",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "093",
+      "pathNm": "BYD"
+    },
+    {
+      "path": "057",
+      "carType": "IMP",
+      "mnuftrNm": "어큐라",
+      "mnuftrEnm": "Acura",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "057",
+      "pathNm": "어큐라"
+    },
+    {
+      "path": "051",
+      "carType": "IMP",
+      "mnuftrNm": "다이하쯔",
+      "mnuftrEnm": "Daihatsu",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "051",
+      "pathNm": "다이하쯔"
+    },
+    {
+      "path": "092",
+      "carType": "IMP",
+      "mnuftrNm": "선롱 버스",
+      "mnuftrEnm": "Sunlong",
+      "mnuftrType": "MAKE_TYPE020",
+      "count": 0,
+      "mnuftrCd": "092",
+      "pathNm": "선롱 버스"
+    }
+  ],
+  "extraData": {},
+  "extraString": null,
+  "returnCode": null,
+  "success": true
+}

@@ -1,0 +1,207 @@
+{
+  "message": null,
+  "data": [
+    {
+      "path": "001,004,199,002,001",
+      "modelGrpCd": "004",
+      "count": 5,
+      "mnuftrCd": "001",
+      "grdCd": "002",
+      "grdDtlNm": "프리미엄",
+      "modelCd": "199",
+      "grdDtlCd": "001",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 2.5,프리미엄"
+    },
+    {
+      "path": "001,004,199,002,002",
+      "modelGrpCd": "004",
+      "count": 6,
+      "mnuftrCd": "001",
+      "grdCd": "002",
+      "grdDtlNm": "익스클루시브",
+      "modelCd": "199",
+      "grdDtlCd": "002",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 2.5,익스클루시브"
+    },
+    {
+      "path": "001,004,199,002,004",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "002",
+      "grdDtlNm": "아너스",
+      "modelCd": "199",
+      "grdDtlCd": "004",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 2.5,아너스"
+    },
+    {
+      "path": "001,004,199,002,003",
+      "modelGrpCd": "004",
+      "count": 15,
+      "mnuftrCd": "001",
+      "grdCd": "002",
+      "grdDtlNm": "캘리그래피",
+      "modelCd": "199",
+      "grdDtlCd": "003",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 2.5,캘리그래피"
+    },
+    {
+      "path": "001,004,199,003,001",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "003",
+      "grdDtlNm": "프리미엄",
+      "modelCd": "199",
+      "grdDtlCd": "001",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 3.5 2WD,프리미엄"
+    },
+    {
+      "path": "001,004,199,003,003",
+      "modelGrpCd": "004",
+      "count": 1,
+      "mnuftrCd": "001",
+      "grdCd": "003",
+      "grdDtlNm": "익스클루시브",
+      "modelCd": "199",
+      "grdDtlCd": "003",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 3.5 2WD,익스클루시브"
+    },
+    {
+      "path": "001,004,199,003,006",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "003",
+      "grdDtlNm": "아너스",
+      "modelCd": "199",
+      "grdDtlCd": "006",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 3.5 2WD,아너스"
+    },
+    {
+      "path": "001,004,199,003,005",
+      "modelGrpCd": "004",
+      "count": 13,
+      "mnuftrCd": "001",
+      "grdCd": "003",
+      "grdDtlNm": "캘리그래피",
+      "modelCd": "199",
+      "grdDtlCd": "005",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 3.5 2WD,캘리그래피"
+    },
+    {
+      "path": "001,004,199,005,001",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "005",
+      "grdDtlNm": "프리미엄",
+      "modelCd": "199",
+      "grdDtlCd": "001",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 3.5 4WD,프리미엄"
+    },
+    {
+      "path": "001,004,199,005,002",
+      "modelGrpCd": "004",
+      "count": 1,
+      "mnuftrCd": "001",
+      "grdCd": "005",
+      "grdDtlNm": "익스클루시브",
+      "modelCd": "199",
+      "grdDtlCd": "002",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 3.5 4WD,익스클루시브"
+    },
+    {
+      "path": "001,004,199,005,004",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "005",
+      "grdDtlNm": "아너스",
+      "modelCd": "199",
+      "grdDtlCd": "004",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 3.5 4WD,아너스"
+    },
+    {
+      "path": "001,004,199,005,003",
+      "modelGrpCd": "004",
+      "count": 4,
+      "mnuftrCd": "001",
+      "grdCd": "005",
+      "grdDtlNm": "캘리그래피",
+      "modelCd": "199",
+      "grdDtlCd": "003",
+      "pathNm": "현대,그랜저,그랜저 (GN7),가솔린 3.5 4WD,캘리그래피"
+    },
+    {
+      "path": "001,004,199,006,001",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "006",
+      "grdDtlNm": "프리미엄 플러스",
+      "modelCd": "199",
+      "grdDtlCd": "001",
+      "pathNm": "현대,그랜저,그랜저 (GN7),LPG 3.5 (장애인),프리미엄 플러스"
+    },
+    {
+      "path": "001,004,199,006,002",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "006",
+      "grdDtlNm": "익스클루시브 플러스",
+      "modelCd": "199",
+      "grdDtlCd": "002",
+      "pathNm": "현대,그랜저,그랜저 (GN7),LPG 3.5 (장애인),익스클루시브 플러스"
+    },
+    {
+      "path": "001,004,199,004,001",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "004",
+      "grdDtlNm": "프리미엄",
+      "modelCd": "199",
+      "grdDtlCd": "001",
+      "pathNm": "현대,그랜저,그랜저 (GN7),LPG 3.5 (일반인),프리미엄"
+    },
+    {
+      "path": "001,004,199,004,002",
+      "modelGrpCd": "004",
+      "count": 2,
+      "mnuftrCd": "001",
+      "grdCd": "004",
+      "grdDtlNm": "익스클루시브",
+      "modelCd": "199",
+      "grdDtlCd": "002",
+      "pathNm": "현대,그랜저,그랜저 (GN7),LPG 3.5 (일반인),익스클루시브"
+    },
+    {
+      "path": "001,004,199,007,001",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "007",
+      "grdDtlNm": "고급형",
+      "modelCd": "199",
+      "grdDtlCd": "001",
+      "pathNm": "현대,그랜저,그랜저 (GN7),LPG 3.5 (택시형),고급형"
+    },
+    {
+      "path": "001,004,199,007,002",
+      "modelGrpCd": "004",
+      "count": 0,
+      "mnuftrCd": "001",
+      "grdCd": "007",
+      "grdDtlNm": "VIP",
+      "modelCd": "199",
+      "grdDtlCd": "002",
+      "pathNm": "현대,그랜저,그랜저 (GN7),LPG 3.5 (택시형),VIP"
+    }
+  ],
+  "extraData": {},
+  "extraString": null,
+  "returnCode": null,
+  "success": true
+}
