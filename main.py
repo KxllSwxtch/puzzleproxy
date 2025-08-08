@@ -1200,9 +1200,15 @@ from schemas.kcar import (
     KCarParsedCar
 )
 from services.kcar_service import KCarService
+from services.kcar_static_service import KCarStaticService
 
-# Initialize KCar service WITH proxy for Korean site access
-kcar_service = KCarService(proxy_client)
+# Initialize KCar service with session-based scraping for Korean site access
+# Browser automation is disabled as it requires additional setup
+kcar_service = KCarService(proxy_client, use_browser=False)
+
+# Initialize static service for loading real KCar data from JSON
+kcar_static_service = KCarStaticService()
+kcar_static_service.load_data()
 
 
 @app.get("/api/kcar/manufacturers", response_model=KCarManufacturersResponse)
@@ -1363,44 +1369,31 @@ async def search_kcar_cars(
             limit=limit
         )
         
-        # For now, return mock data to test the integration
-        # This helps us verify the frontend is working while we fix the parser
-        if not manufacturer_code:  # Default search without filters
-            mock_cars = [
-                {
-                    "id": f"kcar_{i}",
-                    "manufacturer": "현대",
-                    "model_group": "그랜저",
-                    "model": "IG",
-                    "grade": "가솔린 3.0",
-                    "grade_detail": "프리미엄",
-                    "year": 2022,
-                    "mileage": 15000 + i * 1000,
-                    "price": 3500 + i * 100,  # in 만원
-                    "fuel_type": "가솔린",
-                    "transmission": "오토",
-                    "accident_status": "무사고",
-                    "image_url": "https://www.kcar.com/images/car_sample.jpg",
-                    "seller_location": "서울",
-                    "car_number": f"12가{3456 + i}",
-                    "description": "깨끗한 차량입니다"
-                }
-                for i in range(min(5, limit))
-            ]
-            
-            return {
-                "success": True,
-                "data": mock_cars,
-                "total": 100,  # Mock total count
-                "page": page,
-                "limit": limit,
-                "debug": {"message": "Using mock data for testing"} if debug else None
-            }
+        # First try to use static data from cars.json
+        result = kcar_static_service.search_cars(
+            manufacturer_code=manufacturer_code,
+            model_group_code=model_group_code,
+            model_code=model_code,
+            page=page,
+            limit=limit
+        )
         
-        # Try to fetch real data
+        # If static service returned data successfully
+        if result.get("success") and result.get("data"):
+            logger.info(f"Returning {len(result.get('data', []))} cars from static data")
+            return result
+        
+        # Fallback to browser automation or session scraping
+        result = await kcar_service.search_cars_browser(filters, page, limit)
+        
+        # If browser service returned data successfully
+        if result.get("success") and result.get("data"):
+            return result
+        
+        # Last fallback to HTML scraping
         cars = await kcar_service.search_cars_html(filters, page, limit)
         
-        # If no cars found, use mock data for testing
+        # If no cars found and debug mode, return empty result
         if not cars and debug:
             return {
                 "success": True,

@@ -15,6 +15,11 @@ from schemas.kcar import (
     KCarSearchFilters
 )
 from parsers.kcar_parser import KCarHTMLParser
+try:
+    from services.kcar_browser_service import KCarBrowserService
+except ImportError:
+    KCarBrowserService = None
+from services.kcar_session_service import KCarSessionService
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +62,13 @@ class KCarService:
         'hanaopnet': '15bXaA2yxyJH9vJZJOYHJQBT5yIJaAUHpQTxJh9NJhjrx7pYx5QH97prJOzxJjYxxhCTJSQxyJAY5ajaxaCxTybx5AJOqhCrqhIJxhmxJsJT5yQJphJTq7CrJb5h5oJH5jzJxyQa51QxJQyHJyhJ5OzTqhCY9SY1pZQ1JV9H9ZY1pZQ1'
     }
     
-    def __init__(self, proxy_client=None):
+    def __init__(self, proxy_client=None, use_browser=False):
         """Initialize KCar service with optional proxy client"""
         self.proxy_client = proxy_client
         self.session = None
+        self.use_browser = use_browser and KCarBrowserService is not None
+        self.browser_service = None
+        self.session_service = None
         
     async def _make_proxy_request(self, url: str) -> Dict:
         """Make request using proxy client if available"""
@@ -218,6 +226,52 @@ class KCarService:
         data = await self._make_request("POST", url, json_data=payload)
         return KCarGradeDetailsResponse(**data)
     
+    async def search_cars_session(
+        self,
+        filters: KCarSearchFilters,
+        page: int = 1,
+        limit: int = 27
+    ) -> Dict:
+        """Search cars using session-based scraping"""
+        if not self.session_service:
+            self.session_service = KCarSessionService()
+            await self.session_service.initialize()
+            
+        result = await self.session_service.search_cars_html(
+            manufacturer_code=filters.mnuftrCd if hasattr(filters, 'mnuftrCd') else None,
+            model_group_code=filters.modelGrpCd if hasattr(filters, 'modelGrpCd') else None,
+            model_code=filters.modelCd if hasattr(filters, 'modelCd') else None,
+            page_num=page,
+            limit=limit
+        )
+        
+        return result
+    
+    async def search_cars_browser(
+        self,
+        filters: KCarSearchFilters,
+        page: int = 1,
+        limit: int = 27
+    ) -> Dict:
+        """Search cars using browser automation"""
+        if not self.use_browser or not KCarBrowserService:
+            # Fallback to session service
+            return await self.search_cars_session(filters, page, limit)
+            
+        if not self.browser_service:
+            self.browser_service = KCarBrowserService()
+            await self.browser_service.initialize()
+            
+        result = await self.browser_service.search_cars(
+            manufacturer_code=filters.mnuftrCd if hasattr(filters, 'mnuftrCd') else None,
+            model_group_code=filters.modelGrpCd if hasattr(filters, 'modelGrpCd') else None,
+            model_code=filters.modelCd if hasattr(filters, 'modelCd') else None,
+            page_num=page,
+            limit=limit
+        )
+        
+        return result
+    
     async def search_cars_html(
         self,
         filters: KCarSearchFilters,
@@ -306,10 +360,16 @@ class KCarService:
             return None
     
     async def close(self):
-        """Close the HTTP session"""
+        """Close the HTTP session and browser resources"""
         if self.session:
             await self.session.aclose()
             self.session = None
+        if self.browser_service:
+            await self.browser_service.cleanup()
+            self.browser_service = None
+        if self.session_service:
+            await self.session_service.cleanup()
+            self.session_service = None
     
     async def __aenter__(self):
         """Context manager entry"""
