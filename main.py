@@ -31,7 +31,7 @@ from services.kbchachacha_service import KBChaChaService
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="LiPan Auto Proxy", version="1.0")
+app = FastAPI(title="Puzzle Proxy", version="1.0")
 
 # CORS — разрешаем все origins
 app.add_middleware(
@@ -1172,8 +1172,6 @@ async def get_kbchachacha_car_details(car_seq: str):
     except Exception as e:
         logger.error(f"Error in KBChaChaCha car details endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-
 
 
 if __name__ == "__main__":
