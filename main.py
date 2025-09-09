@@ -26,6 +26,8 @@ from schemas.kbchachacha import (
     KBSellerInfo,
 )
 from services.kbchachacha_service import KBChaChaService
+from services.encar_history_service import EncarHistoryService
+from parsers.encar_history_parser import EncarHistoryParser
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -310,6 +312,8 @@ proxy_client = EncarProxyClient()
 
 # Initialize KBChaChaCha service WITH proxy for Korean site access
 kbchachacha_service = KBChaChaService(proxy_client)
+encar_history_service = EncarHistoryService()  # Temporarily disable proxy for testing
+encar_history_parser = EncarHistoryParser()
 
 
 @app.on_event("shutdown")
@@ -1172,6 +1176,110 @@ async def get_kbchachacha_car_details(car_seq: str):
     except Exception as e:
         logger.error(f"Error in KBChaChaCha car details endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+# ============================================================================
+# Encar History API Endpoints
+# ============================================================================
+
+
+@app.get("/api/encar/manufacturing-date/{car_id}")
+async def get_manufacturing_date(car_id: str):
+    """
+    Get manufacturing date from Encar history page
+    
+    **Parameters:**
+    - **car_id**: Car ID to fetch manufacturing date for (e.g., "39723434")
+    
+    **Returns:**
+    Manufacturing date information including:
+    - Formatted manufacturing date (YYYY.MM format)
+    - Display format (MM/YYYY)
+    - First registration date (if available)
+    - Additional car information
+    
+    **Example Usage:**
+    - Get manufacturing date: `/api/encar/manufacturing-date/39723434`
+    
+    **Response Format:**
+    ```json
+    {
+        "success": true,
+        "manufacturingDate": "2018.03",
+        "displayDate": "03/2018",
+        "firstRegistrationDate": "2018년 05월 30일",
+        "originalDate": "2018년 03월 26일",
+        "additionalInfo": {
+            "manufacturer": "BMW",
+            "model": "5시리즈 (G30)",
+            "productionCountry": "오스트리아"
+        }
+    }
+    ```
+    
+    **Error Cases:**
+    - 404: Car not found or history unavailable
+    - 502: Failed to fetch history data
+    - 500: Internal server error
+    """
+    try:
+        logger.info(f"Fetching manufacturing date for car ID: {car_id}")
+        
+        # Fetch car history HTML
+        html_content = await encar_history_service.get_car_history(car_id)
+        
+        if not html_content:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Car history not found or unavailable for ID: {car_id}"
+            )
+        
+        # Extract manufacturing date
+        manufacturing_info = encar_history_parser.extract_manufacturing_date(html_content)
+        
+        if not manufacturing_info:
+            # Return failure but not HTTP error - let frontend handle fallback
+            logger.warning(f"Manufacturing date not found in history for car ID: {car_id}")
+            return {
+                "success": False,
+                "message": "Manufacturing date not found in history data",
+                "carId": car_id
+            }
+        
+        # Extract additional information
+        additional_info = encar_history_parser.extract_additional_info(html_content)
+        
+        # Prepare response
+        manufacturing_date_info = manufacturing_info.get('manufacturingDate', {})
+        
+        response = {
+            "success": True,
+            "carId": car_id,
+            "manufacturingDate": manufacturing_date_info.get('formatted', ''),
+            "displayDate": manufacturing_date_info.get('display', ''),
+            "originalDate": manufacturing_info.get('originalManufacturingDate', ''),
+            "firstRegistrationDate": manufacturing_info.get('firstRegistrationDate', ''),
+            "source": manufacturing_info.get('source', 'unknown'),
+            "additionalInfo": additional_info,
+            "dateDetails": {
+                "year": manufacturing_date_info.get('year', ''),
+                "month": manufacturing_date_info.get('month', ''),
+                "day": manufacturing_date_info.get('day', ''),
+                "fullDate": manufacturing_date_info.get('full_date', '')
+            }
+        }
+        
+        logger.info(f"Successfully extracted manufacturing date for car {car_id}: {response['manufacturingDate']}")
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching manufacturing date for car {car_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Internal server error while fetching manufacturing date: {str(e)}"
+        )
 
 
 if __name__ == "__main__":
