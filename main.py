@@ -312,7 +312,18 @@ proxy_client = EncarProxyClient()
 
 # Initialize KBChaChaCha service WITH proxy for Korean site access
 kbchachacha_service = KBChaChaService(proxy_client)
-encar_history_service = EncarHistoryService()  # Temporarily disable proxy for testing
+
+# Initialize Encar History service - use proxy only on production to bypass IP blocking
+import os
+if os.environ.get('RENDER') or os.environ.get('RENDER_SERVICE_NAME'):
+    # Running on Render.com - use proxy to bypass datacenter IP blocking
+    logger.info("Production environment detected - enabling proxy for Encar history service")
+    encar_history_service = EncarHistoryService(proxy_client)
+else:
+    # Local development - no proxy needed
+    logger.info("Development environment detected - using direct connection for Encar history service")
+    encar_history_service = EncarHistoryService()
+
 encar_history_parser = EncarHistoryParser()
 
 
@@ -1233,6 +1244,15 @@ async def get_manufacturing_date(car_id: str):
                 status_code=404,
                 detail=f"Car history not found or unavailable for ID: {car_id}"
             )
+        
+        # Enhanced logging for production debugging
+        logger.info(f"HTML content length: {len(html_content)}")
+        logger.info(f"Contains __NEXT_DATA__: {'__NEXT_DATA__' in html_content}")
+        logger.info(f"Contains manufacturing date text: {'제작일시' in html_content}")
+        
+        # Check for CAPTCHA or blocking
+        if 'recaptcha' in html_content.lower() or 'captcha' in html_content.lower():
+            logger.warning(f"CAPTCHA detected in response for car ID: {car_id}")
         
         # Extract manufacturing date
         manufacturing_info = encar_history_parser.extract_manufacturing_date(html_content)
