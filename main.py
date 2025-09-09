@@ -2,6 +2,7 @@ import requests
 import asyncio
 import random
 import time
+import os
 from typing import Dict, List, Optional, Union, Annotated
 from fastapi import FastAPI, Query, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
@@ -314,8 +315,22 @@ proxy_client = EncarProxyClient()
 kbchachacha_service = KBChaChaService(proxy_client)
 
 # Initialize Encar History service - use proxy only on production to bypass IP blocking
-import os
-if os.environ.get('RENDER') or os.environ.get('RENDER_SERVICE_NAME'):
+# Detect production environment with multiple checks
+is_production = (
+    os.environ.get('RENDER') == 'true' or  # Render.com sets this to "true" string
+    os.environ.get('RENDER_SERVICE_NAME') or
+    os.environ.get('RENDER_SERVICE_TYPE') or
+    'onrender.com' in os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
+)
+
+# Log environment detection for debugging
+logger.info(f"Environment detection - RENDER: {os.environ.get('RENDER')}")
+logger.info(f"Environment detection - RENDER_SERVICE_NAME: {os.environ.get('RENDER_SERVICE_NAME')}")
+logger.info(f"Environment detection - RENDER_SERVICE_TYPE: {os.environ.get('RENDER_SERVICE_TYPE')}")
+logger.info(f"Environment detection - RENDER_EXTERNAL_HOSTNAME: {os.environ.get('RENDER_EXTERNAL_HOSTNAME')}")
+logger.info(f"Environment detection - is_production: {is_production}")
+
+if is_production:
     # Running on Render.com - use proxy to bypass datacenter IP blocking
     logger.info("Production environment detected - enabling proxy for Encar history service")
     encar_history_service = EncarHistoryService(proxy_client)
