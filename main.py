@@ -27,8 +27,6 @@ from schemas.kbchachacha import (
     KBSellerInfo,
 )
 from services.kbchachacha_service import KBChaChaService
-from services.encar_history_service import EncarHistoryService
-from parsers.encar_history_parser import EncarHistoryParser
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -313,33 +311,6 @@ proxy_client = EncarProxyClient()
 
 # Initialize KBChaChaCha service WITH proxy for Korean site access
 kbchachacha_service = KBChaChaService(proxy_client)
-
-# Initialize Encar History service - use proxy only on production to bypass IP blocking
-# Detect production environment with multiple checks
-is_production = (
-    os.environ.get('RENDER') == 'true' or  # Render.com sets this to "true" string
-    os.environ.get('RENDER_SERVICE_NAME') or
-    os.environ.get('RENDER_SERVICE_TYPE') or
-    'onrender.com' in os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
-)
-
-# Log environment detection for debugging
-logger.info(f"Environment detection - RENDER: {os.environ.get('RENDER')}")
-logger.info(f"Environment detection - RENDER_SERVICE_NAME: {os.environ.get('RENDER_SERVICE_NAME')}")
-logger.info(f"Environment detection - RENDER_SERVICE_TYPE: {os.environ.get('RENDER_SERVICE_TYPE')}")
-logger.info(f"Environment detection - RENDER_EXTERNAL_HOSTNAME: {os.environ.get('RENDER_EXTERNAL_HOSTNAME')}")
-logger.info(f"Environment detection - is_production: {is_production}")
-
-if is_production:
-    # Running on Render.com - use proxy to bypass datacenter IP blocking
-    logger.info("Production environment detected - enabling proxy for Encar history service")
-    encar_history_service = EncarHistoryService(proxy_client)
-else:
-    # Local development - no proxy needed
-    logger.info("Development environment detected - using direct connection for Encar history service")
-    encar_history_service = EncarHistoryService()
-
-encar_history_parser = EncarHistoryParser()
 
 
 @app.on_event("shutdown")
@@ -1203,118 +1174,6 @@ async def get_kbchachacha_car_details(car_seq: str):
         logger.error(f"Error in KBChaChaCha car details endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-
-# ============================================================================
-# Encar History API Endpoints
-# ============================================================================
-
-
-@app.get("/api/encar/manufacturing-date/{car_id}")
-async def get_manufacturing_date(car_id: str):
-    """
-    Get manufacturing date from Encar history page
-    
-    **Parameters:**
-    - **car_id**: Car ID to fetch manufacturing date for (e.g., "39723434")
-    
-    **Returns:**
-    Manufacturing date information including:
-    - Formatted manufacturing date (YYYY.MM format)
-    - Display format (MM/YYYY)
-    - First registration date (if available)
-    - Additional car information
-    
-    **Example Usage:**
-    - Get manufacturing date: `/api/encar/manufacturing-date/39723434`
-    
-    **Response Format:**
-    ```json
-    {
-        "success": true,
-        "manufacturingDate": "2018.03",
-        "displayDate": "03/2018",
-        "firstRegistrationDate": "2018년 05월 30일",
-        "originalDate": "2018년 03월 26일",
-        "additionalInfo": {
-            "manufacturer": "BMW",
-            "model": "5시리즈 (G30)",
-            "productionCountry": "오스트리아"
-        }
-    }
-    ```
-    
-    **Error Cases:**
-    - 404: Car not found or history unavailable
-    - 502: Failed to fetch history data
-    - 500: Internal server error
-    """
-    try:
-        logger.info(f"Fetching manufacturing date for car ID: {car_id}")
-        
-        # Fetch car history HTML
-        html_content = await encar_history_service.get_car_history(car_id)
-        
-        if not html_content:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Car history not found or unavailable for ID: {car_id}"
-            )
-        
-        # Enhanced logging for production debugging
-        logger.info(f"HTML content length: {len(html_content)}")
-        logger.info(f"Contains __NEXT_DATA__: {'__NEXT_DATA__' in html_content}")
-        logger.info(f"Contains manufacturing date text: {'제작일시' in html_content}")
-        
-        # Check for CAPTCHA or blocking
-        if 'recaptcha' in html_content.lower() or 'captcha' in html_content.lower():
-            logger.warning(f"CAPTCHA detected in response for car ID: {car_id}")
-        
-        # Extract manufacturing date
-        manufacturing_info = encar_history_parser.extract_manufacturing_date(html_content)
-        
-        if not manufacturing_info:
-            # Return failure but not HTTP error - let frontend handle fallback
-            logger.warning(f"Manufacturing date not found in history for car ID: {car_id}")
-            return {
-                "success": False,
-                "message": "Manufacturing date not found in history data",
-                "carId": car_id
-            }
-        
-        # Extract additional information
-        additional_info = encar_history_parser.extract_additional_info(html_content)
-        
-        # Prepare response
-        manufacturing_date_info = manufacturing_info.get('manufacturingDate', {})
-        
-        response = {
-            "success": True,
-            "carId": car_id,
-            "manufacturingDate": manufacturing_date_info.get('formatted', ''),
-            "displayDate": manufacturing_date_info.get('display', ''),
-            "originalDate": manufacturing_info.get('originalManufacturingDate', ''),
-            "firstRegistrationDate": manufacturing_info.get('firstRegistrationDate', ''),
-            "source": manufacturing_info.get('source', 'unknown'),
-            "additionalInfo": additional_info,
-            "dateDetails": {
-                "year": manufacturing_date_info.get('year', ''),
-                "month": manufacturing_date_info.get('month', ''),
-                "day": manufacturing_date_info.get('day', ''),
-                "fullDate": manufacturing_date_info.get('full_date', '')
-            }
-        }
-        
-        logger.info(f"Successfully extracted manufacturing date for car {car_id}: {response['manufacturingDate']}")
-        return response
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching manufacturing date for car {car_id}: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Internal server error while fetching manufacturing date: {str(e)}"
-        )
 
 
 if __name__ == "__main__":
