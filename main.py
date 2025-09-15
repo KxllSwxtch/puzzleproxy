@@ -28,6 +28,10 @@ from schemas.kbchachacha import (
 )
 from services.kbchachacha_service import KBChaChaService
 
+# Currency imports
+from schemas.currency import CurrencyRateResponse
+from services.currency_service import currency_service
+
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1174,6 +1178,53 @@ async def get_kbchachacha_car_details(car_seq: str):
         logger.error(f"Error in KBChaChaCha car details endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+
+# ================================
+# CURRENCY ENDPOINTS
+# ================================
+
+@app.get("/api/currency/rub-krw", response_model=CurrencyRateResponse)
+async def get_rub_krw_rate():
+    """
+    Get current RUB to KRW exchange rate from Naver API
+
+    This endpoint fetches the exchange rate directly from Naver's API to bypass
+    browser CORS restrictions. The rate is adjusted by -0.80 as specified.
+
+    Returns:
+        CurrencyRateResponse: Current exchange rate with metadata
+    """
+    try:
+        logger.info("🔄 Processing RUB/KRW rate request...")
+
+        # Fetch rate from Naver API using the currency service
+        result = await currency_service.fetch_naver_rub_rate()
+
+        # Log the result for monitoring
+        if result.success:
+            logger.info(f"✅ Successfully returned RUB/KRW rate: {result.data.rubToKrwRate} (source: {result.source})")
+        else:
+            logger.warning(f"⚠️ Returned fallback rate: {result.data.rubToKrwRate} (error: {result.error})")
+
+        return result
+
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in currency endpoint: {e}")
+
+        # Return fallback response in case of unexpected errors
+        from datetime import datetime
+        from schemas.currency import CurrencyRateData
+
+        return CurrencyRateResponse(
+            success=False,
+            data=CurrencyRateData(
+                rubToKrwRate=16.54,
+                originalRate=None
+            ),
+            source="fallback",
+            lastUpdated=datetime.utcnow().isoformat() + "Z",
+            error=f"Unexpected server error: {str(e)}"
+        )
 
 
 if __name__ == "__main__":
