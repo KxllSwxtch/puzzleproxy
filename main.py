@@ -1184,7 +1184,7 @@ async def get_kbchachacha_car_details(car_seq: str):
 # ================================
 
 @app.get("/api/currency/rub-krw", response_model=CurrencyRateResponse)
-async def get_rub_krw_rate():
+def get_rub_krw_rate():
     """
     Get current RUB to KRW exchange rate from Naver API
 
@@ -1198,7 +1198,7 @@ async def get_rub_krw_rate():
         logger.info("🔄 Processing RUB/KRW rate request...")
 
         # Fetch rate from Naver API using the currency service
-        result = await currency_service.fetch_naver_rub_rate()
+        result = currency_service.fetch_naver_rub_rate()
 
         # Log the result for monitoring
         if result.success:
@@ -1228,7 +1228,7 @@ async def get_rub_krw_rate():
 
 
 @app.get("/api/currency/usd-krw", response_model=UsdCurrencyRateResponse)
-async def get_usd_krw_rate():
+def get_usd_krw_rate():
     """
     Get current USD to KRW exchange rate from Naver API
 
@@ -1242,7 +1242,7 @@ async def get_usd_krw_rate():
         logger.info("🔄 Processing USD/KRW rate request...")
 
         # Fetch rate from Naver API using the currency service
-        result = await currency_service.fetch_naver_usd_rate()
+        result = currency_service.fetch_naver_usd_rate()
 
         # Log the result for monitoring
         if result.success:

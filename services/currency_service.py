@@ -22,7 +22,7 @@ class CurrencyService:
         self.rub_adjustment = -0.80      # Rate adjustment for RUB as specified
         self.usd_adjustment = -10.0      # Rate adjustment for USD (configurable)
 
-    async def fetch_naver_rub_rate(self) -> CurrencyRateResponse:
+    def fetch_naver_rub_rate(self) -> CurrencyRateResponse:
         """
         Fetch RUB/KRW rate directly from Naver API
         This bypasses browser CORS restrictions by making server-to-server calls
@@ -66,7 +66,7 @@ class CurrencyService:
                 'https://ts-proxy.naver.com/content/qapirender.nhn',
                 params=params,
                 headers=headers,
-                timeout=30
+                timeout=5  # Reduced from 30 to 5 seconds to prevent hanging
             )
 
             if not response.ok:
@@ -144,7 +144,7 @@ class CurrencyService:
             error=error_message
         )
 
-    async def fetch_naver_usd_rate(self) -> UsdCurrencyRateResponse:
+    def fetch_naver_usd_rate(self) -> UsdCurrencyRateResponse:
         """
         Fetch USD/KRW rate directly from Naver API
         This bypasses browser CORS restrictions by making server-to-server calls
@@ -188,7 +188,7 @@ class CurrencyService:
                 'https://ts-proxy.naver.com/content/qapirender.nhn',
                 params=params,
                 headers=headers,
-                timeout=30
+                timeout=5  # Reduced from 30 to 5 seconds to prevent hanging
             )
 
             if not response.ok:
