@@ -29,7 +29,7 @@ from schemas.kbchachacha import (
 from services.kbchachacha_service import KBChaChaService
 
 # Currency imports
-from schemas.currency import CurrencyRateResponse
+from schemas.currency import CurrencyRateResponse, UsdCurrencyRateResponse
 from services.currency_service import currency_service
 
 # Настройка логирования
@@ -1219,6 +1219,50 @@ async def get_rub_krw_rate():
             success=False,
             data=CurrencyRateData(
                 rubToKrwRate=16.54,
+                originalRate=None
+            ),
+            source="fallback",
+            lastUpdated=datetime.utcnow().isoformat() + "Z",
+            error=f"Unexpected server error: {str(e)}"
+        )
+
+
+@app.get("/api/currency/usd-krw", response_model=UsdCurrencyRateResponse)
+async def get_usd_krw_rate():
+    """
+    Get current USD to KRW exchange rate from Naver API
+
+    This endpoint fetches the exchange rate directly from Naver's API to bypass
+    browser CORS restrictions. The rate is adjusted by -10.0 as specified.
+
+    Returns:
+        UsdCurrencyRateResponse: Current exchange rate with metadata
+    """
+    try:
+        logger.info("🔄 Processing USD/KRW rate request...")
+
+        # Fetch rate from Naver API using the currency service
+        result = await currency_service.fetch_naver_usd_rate()
+
+        # Log the result for monitoring
+        if result.success:
+            logger.info(f"✅ Successfully returned USD/KRW rate: {result.data.usdToKrwRate} (source: {result.source})")
+        else:
+            logger.warning(f"⚠️ Returned fallback rate: {result.data.usdToKrwRate} (error: {result.error})")
+
+        return result
+
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in USD currency endpoint: {e}")
+
+        # Return fallback response in case of unexpected errors
+        from datetime import datetime
+        from schemas.currency import UsdCurrencyRateData
+
+        return UsdCurrencyRateResponse(
+            success=False,
+            data=UsdCurrencyRateData(
+                usdToKrwRate=1375.50,
                 originalRate=None
             ),
             source="fallback",
