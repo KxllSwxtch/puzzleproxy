@@ -3,6 +3,7 @@ import asyncio
 import random
 import time
 import os
+from datetime import datetime
 from typing import Dict, List, Optional, Union, Annotated
 from fastapi import FastAPI, Query, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,6 +32,20 @@ from services.kbchachacha_service import KBChaChaService
 # Currency imports
 from schemas.currency import CurrencyRateResponse, UsdCurrencyRateResponse
 from services.currency_service import currency_service
+
+# Che168 imports
+from schemas.che168 import (
+    Che168BrandsResponse,
+    Che168SearchResponse,
+    Che168SearchFilters,
+    Che168CarDetailResponse,
+    Che168CarInfoResponse,
+    Che168CarParamsResponse,
+    Che168CarAnalysisResponse,
+    TranslationRequest,
+    TranslationResponse,
+)
+from services.che168_service import Che168Service
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -315,6 +330,7 @@ proxy_client = EncarProxyClient()
 
 # Initialize KBChaChaCha service WITH proxy for Korean site access
 kbchachacha_service = KBChaChaService(proxy_client)
+che168_service = Che168Service(proxy_client)
 
 
 @app.on_event("shutdown")
@@ -1269,6 +1285,183 @@ def get_usd_krw_rate():
             lastUpdated=datetime.utcnow().isoformat() + "Z",
             error=f"Unexpected server error: {str(e)}"
         )
+
+
+# =============================================================================
+# CHE168 CHINESE CARS ENDPOINTS
+# =============================================================================
+
+@app.get("/api/che168/brands", response_model=Che168BrandsResponse)
+async def get_che168_brands():
+    """
+    Get all available car brands from Che168 Chinese marketplace
+
+    Returns:
+        Che168BrandsResponse: List of hot brands and all brands with metadata
+    """
+    try:
+        result = che168_service.get_brands()
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 brands endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Brands fetch failed: {str(e)}")
+
+
+@app.post("/api/che168/search", response_model=Che168SearchResponse)
+async def search_che168_cars(filters: Che168SearchFilters):
+    """
+    Search Chinese cars with advanced filtering on Che168
+
+    Args:
+        filters: Search filters including brand, price range, year, etc.
+
+    Returns:
+        Che168SearchResponse: Search results with car listings and pagination
+    """
+    try:
+        # Convert Pydantic model to dict for service
+        filters_dict = filters.dict(exclude_unset=True)
+        result = che168_service.search_cars(filters_dict)
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 search endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@app.get("/api/che168/car/{info_id}", response_model=Che168CarDetailResponse)
+async def get_che168_car_detail(
+    info_id: Annotated[str, Path(description="Car info ID")]
+):
+    """
+    Get detailed information for a specific Chinese car
+
+    Args:
+        info_id: Che168 car info ID
+
+    Returns:
+        Che168CarDetailResponse: Complete car details including specs and seller info
+    """
+    try:
+        result = che168_service.get_car_detail(info_id)
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 car detail endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Car detail fetch failed: {str(e)}")
+
+
+@app.get("/api/che168/car/{info_id}/info", response_model=Che168CarInfoResponse)
+async def get_che168_car_info(
+    info_id: Annotated[str, Path(description="Car info ID")]
+):
+    """
+    Get basic car information
+
+    Args:
+        info_id: Che168 car info ID
+
+    Returns:
+        Che168CarInfoResponse: Basic car information
+    """
+    try:
+        result = che168_service.get_car_detail(info_id)
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 car info endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Car info fetch failed: {str(e)}")
+
+
+@app.get("/api/che168/car/{info_id}/params", response_model=Che168CarParamsResponse)
+async def get_che168_car_params(
+    info_id: Annotated[str, Path(description="Car info ID")]
+):
+    """
+    Get car technical parameters
+
+    Args:
+        info_id: Che168 car info ID
+
+    Returns:
+        Che168CarParamsResponse: Car technical specifications
+    """
+    try:
+        result = che168_service.get_car_detail(info_id)
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 car params endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Car params fetch failed: {str(e)}")
+
+
+@app.get("/api/che168/car/{info_id}/analysis", response_model=Che168CarAnalysisResponse)
+async def get_che168_car_analysis(
+    info_id: Annotated[str, Path(description="Car info ID")]
+):
+    """
+    Get car market analysis
+
+    Args:
+        info_id: Che168 car info ID
+
+    Returns:
+        Che168CarAnalysisResponse: Market analysis and price trends
+    """
+    try:
+        result = che168_service.get_car_detail(info_id)
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 car analysis endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Car analysis fetch failed: {str(e)}")
+
+
+@app.post("/api/che168/translate", response_model=TranslationResponse)
+async def translate_che168_text(translation_request: TranslationRequest):
+    """
+    Translate Chinese text to target language
+
+    Args:
+        translation_request: Text and target language
+
+    Returns:
+        TranslationResponse: Translated text
+    """
+    try:
+        # Translation not implemented in current service
+        result = {
+            "returncode": 1,
+            "message": "Translation service not available",
+            "result": {}
+        }
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 translate endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+
+
+@app.get("/api/che168/test")
+async def test_che168_service():
+    """
+    Test Che168 service health
+
+    Returns:
+        dict: Service health status
+    """
+    try:
+        result = che168_service.health_check()
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 test endpoint: {str(e)}")
+        return {
+            "returncode": 1,
+            "message": f"Service test failed: {str(e)}",
+            "result": {"status": "unhealthy"}
+        }
 
 
 if __name__ == "__main__":
