@@ -296,10 +296,14 @@ class Che168Service:
     def get_brands(self) -> Dict[str, Any]:
         """Get all available car brands from Che168"""
         try:
-            url = f"{self.base_url}/api/v11/filters"
+            url = f"{self.base_url}/api/v2/getbrands"
 
             params = {
-                "pageid": f"{int(time.time())}_4145",
+                "cid": "0",
+                "pid": "0",
+                "isenergy": "0",
+                "s_pid": "0",
+                "s_cid": "0",
             }
 
             json_data = self._make_request(url, params)
