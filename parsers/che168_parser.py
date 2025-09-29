@@ -174,15 +174,26 @@ class Che168Parser:
 
             result = json_data.get("result", {})
 
-            # Parse brands from filters response
-            brands = []
-            brand_filters = result.get("filters", {}).get("brand", [])
+            # Parse brands from new getbrands response structure
+            hotbrands = []
+            allbrands = []
 
-            for brand_data in brand_filters:
+            # Parse hot brands
+            for brand_data in result.get("hotbrand", []):
                 try:
                     brand = self._parse_brand(brand_data)
                     if brand:
-                        brands.append(brand)
+                        hotbrands.append(brand)
+                except Exception as e:
+                    logger.warning(f"Failed to parse hot brand: {str(e)}")
+                    continue
+
+            # Parse all brands
+            for brand_data in result.get("allbrand", []):
+                try:
+                    brand = self._parse_brand(brand_data)
+                    if brand:
+                        allbrands.append(brand)
                 except Exception as e:
                     logger.warning(f"Failed to parse brand: {str(e)}")
                     continue
@@ -191,8 +202,8 @@ class Che168Parser:
                 "returncode": 0,
                 "message": "Success",
                 "result": {
-                    "hotbrand": brands[:10],  # First 10 as hot brands
-                    "allbrand": brands
+                    "hotbrand": hotbrands,
+                    "allbrand": allbrands
                 },
                 "success": True
             }
