@@ -119,6 +119,7 @@ class Che168Parser:
                     "pagecount": result.get("pagecount", 0),
                     "queryid": result.get("queryid", ""),
                     "service": service_filters,
+                    "filters": result.get("filters", []),  # Preserve filters array for models/years extraction
                 },
                 "success": True
             }

@@ -47,6 +47,10 @@ class Che168Service:
         self.session_cookies = {}
         self.device_id = "e51c9bd2-efd9-4aaa-b0bd-4f0fd92d9f84"
 
+        # Caches for models and years (30 minute TTL)
+        self.models_cache = {}
+        self.years_cache = {}
+
         # Setup session after device_id is defined
         self._setup_session()
 
@@ -320,6 +324,191 @@ class Che168Service:
                 "returncode": 1,
                 "message": f"Error: {str(e)}",
                 "result": {"hotbrand": [], "allbrand": []},
+                "success": False
+            }
+
+    def get_models(self, brand_id: int) -> Dict[str, Any]:
+        """
+        Get available models for a specific brand
+
+        Args:
+            brand_id: Brand ID to get models for
+
+        Returns:
+            Dictionary with search results containing model filters
+        """
+        try:
+            # Check cache first
+            cache_key = f"brand_{brand_id}"
+            if cache_key in self.models_cache:
+                cached_result, cache_time = self.models_cache[cache_key]
+                if (time.time() - cache_time) < 1800:  # 30 minutes cache
+                    logger.info(f"Using cached models for brand {brand_id}")
+                    return cached_result
+
+            # Make search request with brand ID to get models from filters
+            url = f"{self.base_url}/api/v11/search"
+            params = {
+                "pageindex": "1",
+                "pagesize": "1",
+                "ishideback": "1",
+                "brandid": str(brand_id),
+                "srecom": "2",
+                "personalizedpush": "1",
+                "cid": "0",
+                "iscxcshowed": "-1",
+                "scene_no": "12",
+                "pageid": f"{int(time.time())}_4145",
+                "existtags": "6",
+                "pid": "0",
+                "testtype": "X",
+                "test102223": "X",
+                "testnewcarspecid": "X",
+                "test102797": "X",
+                "otherstatisticsext": "%7B%22history%22%3A%22%E5%88%97%E8%A1%A8%E9%A1%B5%22%2C%22pvareaid%22%3A%220%22%2C%22eventid%22%3A%22usc_2sc_mc_mclby_cydj_click%22%7D",
+                "filtertype": "0",
+                "ssnew": "1",
+            }
+
+            # Get raw response to extract models from filters
+            raw_response = self._make_request(url, params)
+
+            if raw_response.get("returncode") != 0:
+                return {
+                    "returncode": raw_response.get("returncode", -1),
+                    "message": raw_response.get('message', 'Unknown error'),
+                    "result": {},
+                    "success": False
+                }
+
+            # Parse the response with models in filters
+            result = self.parser.parse_car_search_response(raw_response)
+
+            # Extract models from filters array for easier frontend consumption
+            models = []
+            if result.get("result", {}).get("filters"):
+                for filter_item in result["result"]["filters"]:
+                    # Look for series/model filters (key = "seriesid")
+                    if filter_item.get("key") == "seriesid":
+                        models.append({
+                            "id": int(filter_item.get("value", 0)),
+                            "name": filter_item.get("title", ""),
+                            "icon": filter_item.get("icon", ""),
+                            "tag": filter_item.get("tag", ""),
+                            "value": filter_item.get("value", ""),
+                            "title": filter_item.get("title", ""),
+                            "subtitle": filter_item.get("subtitle", ""),
+                        })
+
+            # Add models array to result for frontend compatibility
+            if "result" in result and isinstance(result["result"], dict):
+                result["result"]["models"] = models
+                result["result"]["series"] = models  # Also add as series for backward compatibility
+
+            # Cache the result
+            self.models_cache[cache_key] = (result, time.time())
+
+            logger.info(f"Successfully fetched {len(models)} models for brand {brand_id}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error in get_models for brand {brand_id}: {str(e)}")
+            return {
+                "returncode": 1,
+                "message": f"Service error: {str(e)}",
+                "result": {},
+                "success": False
+            }
+
+    def get_years(self, brand_id: int, series_id: int) -> Dict[str, Any]:
+        """
+        Get available years for a specific brand and model
+
+        Args:
+            brand_id: Brand ID
+            series_id: Series (model) ID
+
+        Returns:
+            Dictionary with search results containing year filters
+        """
+        try:
+            # Check cache first
+            cache_key = f"brand_{brand_id}_series_{series_id}"
+            if cache_key in self.years_cache:
+                cached_result, cache_time = self.years_cache[cache_key]
+                if (time.time() - cache_time) < 1800:  # 30 minutes cache
+                    logger.info(f"Using cached years for brand {brand_id}, series {series_id}")
+                    return cached_result
+
+            # Make search request with brand and series ID to get years from filters
+            url = f"{self.base_url}/api/v11/search"
+            params = {
+                "pageindex": "1",
+                "pagesize": "1",
+                "ishideback": "1",
+                "brandid": str(brand_id),
+                "seriesid": str(series_id),
+                "srecom": "2",
+                "personalizedpush": "1",
+                "cid": "0",
+                "iscxcshowed": "-1",
+                "scene_no": "12",
+                "pageid": f"{int(time.time())}_4375",
+                "existtags": "6",
+                "pid": "0",
+                "testtype": "X",
+                "test102223": "X",
+                "testnewcarspecid": "X",
+                "test102797": "X",
+                "otherstatisticsext": "%7B%22history%22%3A%22%E5%88%97%E8%A1%A8%E9%A1%B5%22%2C%22pvareaid%22%3A%220%22%2C%22eventid%22%3A%22usc_2sc_mc_mclby_cydj_click%22%7D",
+                "filtertype": "0",
+                "ssnew": "1",
+            }
+
+            # Get raw response to extract years from filters
+            raw_response = self._make_request(url, params)
+
+            if raw_response.get("returncode") != 0:
+                return {
+                    "returncode": raw_response.get("returncode", -1),
+                    "message": raw_response.get('message', 'Unknown error'),
+                    "result": {},
+                    "success": False
+                }
+
+            # Parse the response with years in filters
+            result = self.parser.parse_car_search_response(raw_response)
+
+            # Extract years from filters array for easier frontend consumption
+            years = []
+            if result.get("result", {}).get("filters"):
+                for filter_item in result["result"]["filters"]:
+                    # Look for year filters (key = "seriesyearid")
+                    if filter_item.get("key") == "seriesyearid":
+                        years.append({
+                            "id": int(filter_item.get("value", 0)),
+                            "name": filter_item.get("title", ""),
+                            "value": filter_item.get("value", ""),
+                            "title": filter_item.get("title", ""),
+                            "subtitle": filter_item.get("subtitle", ""),
+                        })
+
+            # Add years array to result for frontend compatibility
+            if "result" in result and isinstance(result["result"], dict):
+                result["result"]["years"] = years
+
+            # Cache the result
+            self.years_cache[cache_key] = (result, time.time())
+
+            logger.info(f"Successfully fetched {len(years)} years for brand {brand_id}, series {series_id}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error in get_years for brand {brand_id}, series {series_id}: {str(e)}")
+            return {
+                "returncode": 1,
+                "message": f"Service error: {str(e)}",
+                "result": {},
                 "success": False
             }
 

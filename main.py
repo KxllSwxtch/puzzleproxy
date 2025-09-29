@@ -1308,6 +1308,61 @@ async def get_che168_brands():
         raise HTTPException(status_code=500, detail=f"Brands fetch failed: {str(e)}")
 
 
+@app.get("/api/che168/models/{brand_id}", response_model=Che168SearchResponse)
+async def get_che168_models(brand_id: int):
+    """
+    Get available models for a specific brand from Che168
+
+    This endpoint searches with the brand filter and extracts model options
+    from the service filters in the response.
+
+    Args:
+        brand_id: The brand ID to get models for
+
+    Returns:
+        Che168SearchResponse: Search response with models in the result.series array
+
+    Example:
+        GET /api/che168/models/15  # Get BMW models
+    """
+    try:
+        logger.info(f"Fetching models for brand_id={brand_id}")
+        result = che168_service.get_models(brand_id)
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 models endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Models fetch failed: {str(e)}")
+
+
+@app.get("/api/che168/years/{brand_id}/{series_id}", response_model=Che168SearchResponse)
+async def get_che168_years(brand_id: int, series_id: int):
+    """
+    Get available years for a specific brand and model from Che168
+
+    This endpoint searches with brand and series filters and extracts year options
+    from the service filters in the response.
+
+    Args:
+        brand_id: The brand ID
+        series_id: The series (model) ID
+
+    Returns:
+        Che168SearchResponse: Search response with years in the result.years array
+
+    Example:
+        GET /api/che168/years/15/65  # Get BMW X3 years
+    """
+    try:
+        logger.info(f"Fetching years for brand_id={brand_id}, series_id={series_id}")
+        result = che168_service.get_years(brand_id, series_id)
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in che168 years endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Years fetch failed: {str(e)}")
+
+
 @app.post("/api/che168/search", response_model=Che168SearchResponse)
 async def search_che168_cars(filters: Che168SearchFilters):
     """
