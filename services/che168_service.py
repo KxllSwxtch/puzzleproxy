@@ -156,6 +156,10 @@ class Che168Service:
         # Generate signature
         params["_sign"] = self._generate_sign(params)
 
+        # Log final parameters being sent to Che168 API
+        logger.info(f"🔍 Request: Final params with signature: {list(params.keys())}")
+        logger.info(f"🔍 Request: Total param count: {len(params)}, _sign: {params['_sign'][:16]}...")
+
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -207,30 +211,15 @@ class Che168Service:
         try:
             url = f"{self.base_url}/api/v11/search"
 
-            # Convert filters to API parameters
+            # Use MINIMAL parameters to isolate issue
+            # Only include essential parameters
             params = {
                 "pageindex": str(filters.get("pageindex", 1)),
                 "pagesize": str(filters.get("pagesize", 20)),
-                "ishideback": str(filters.get("ishideback", 0)),
-                "service": str(filters.get("service", "50")) if filters.get("service") else "50",
-                "srecom": str(filters.get("srecom", 1)),
-                "personalizedpush": str(filters.get("personalizedpush", 1)),
-                "cid": str(filters.get("cid", 0)),
-                "iscxcshowed": str(filters.get("iscxcshowed", 0)),
-                "scene_no": str(filters.get("scene_no", "common_2sc_wap_mc_mclby")),
                 "pageid": f"{int(time.time())}_4145",
-                "existtags": filters.get('existtags', ''),
-                "pid": str(filters.get("pid", 0)),
-                "testtype": filters.get('testtype', ''),
-                "test102223": filters.get('test102223', ''),
-                "testnewcarspecid": filters.get('testnewcarspecid', ''),
-                "test102797": filters.get('test102797', ''),
-                "otherstatisticsext": "%7B%22history%22%3A%22%E5%88%97%E8%A1%A8%E9%A1%B5%22%2C%22pvareaid%22%3A%220%22%2C%22eventid%22%3A%22usc_2sc_mc_mclby_cydj_click%22%7D",
-                "filtertype": str(filters.get("filtertype", 4)),
-                "ssnew": str(filters.get("ssnew", 0)),
             }
 
-            # Add brand/model/year filters if provided
+            # Add optional filters only if provided
             if filters.get("brandid"):
                 params["brandid"] = str(filters["brandid"])
             if filters.get("seriesid"):
@@ -242,7 +231,21 @@ class Che168Service:
             if filters.get("sort"):
                 params["sort"] = str(filters["sort"])
 
+            # Add service filter if explicitly provided
+            if filters.get("service"):
+                params["service"] = str(filters["service"])
+
+            logger.info(f"🔍 Service: Calling Che168 API with MINIMAL params (before adding required fields): {list(params.keys())}")
+            logger.info(f"🔍 Service: pageindex={params['pageindex']}, pagesize={params['pagesize']}, brandid={params.get('brandid', 'none')}, service={params.get('service', 'none')}")
+            logger.info(f"🔍 Service: Full params dict: {params}")
+
             json_data = self._make_request(url, params)
+
+            # Log the actual request that was made (after _make_request adds required params)
+            logger.info(f"🔍 Service: Request completed to: {url}")
+
+            logger.info(f"🔍 Service: API Response - returncode: {json_data.get('returncode')}, message: {json_data.get('message')}")
+
             result = self.parser.parse_car_search_response(json_data)
 
             return result

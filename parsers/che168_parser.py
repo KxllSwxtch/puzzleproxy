@@ -61,16 +61,40 @@ class Che168Parser:
 
             result = json_data.get("result", {})
 
+            # Debug logging - Log raw API response structure
+            logger.info(f"🔍 Parser: API Response Keys: {list(json_data.keys())}")
+            logger.info(f"🔍 Parser: Result Keys: {list(result.keys())[:15]}")
+            logger.info(f"🔍 Parser: Totalcount from API: {result.get('totalcount', 0)}")
+            logger.info(f"🔍 Parser: Pageindex from API: {result.get('pageindex', 'N/A')}")
+            logger.info(f"🔍 Parser: Pagesize from API: {result.get('pagesize', 'N/A')}")
+
+            carlist_raw = result.get("carlist", [])
+            logger.info(f"🔍 Parser: Raw carlist type: {type(carlist_raw)}, length: {len(carlist_raw)}")
+
+            if len(carlist_raw) > 0:
+                logger.info(f"🔍 Parser: First car keys: {list(carlist_raw[0].keys())[:20]}")
+                logger.info(f"🔍 Parser: First car sample: infoid={carlist_raw[0].get('infoid')}, carname={carlist_raw[0].get('carname')}, price={carlist_raw[0].get('price')}")
+            else:
+                logger.warning(f"⚠️ Parser: API returned EMPTY carlist! Totalcount: {result.get('totalcount', 0)}")
+                logger.warning(f"⚠️ Parser: This means Che168 API returned totalcount={result.get('totalcount')} but NO actual car data in carlist array")
+                logger.warning(f"⚠️ Parser: Possible causes: (1) Missing required API parameters, (2) API bug/limitation, (3) Wrong endpoint")
+
             # Parse car listings
             car_listings = []
+            failed_count = 0
             for car_data in result.get("carlist", []):
                 try:
                     car = self._parse_car_listing(car_data)
                     if car:
                         car_listings.append(car)
+                    else:
+                        failed_count += 1
                 except Exception as e:
+                    failed_count += 1
                     logger.warning(f"Failed to parse car listing: {str(e)}")
                     continue
+
+            logger.info(f"🔍 Parser: Successfully parsed {len(car_listings)} cars, failed {failed_count}")
 
             # Parse service filters
             service_filters = []
@@ -88,7 +112,7 @@ class Che168Parser:
                 "returncode": 0,
                 "message": "Success",
                 "result": {
-                    "list": car_listings,
+                    "carlist": car_listings,
                     "totalcount": result.get("totalcount", 0),
                     "pageindex": result.get("pageindex", 1),
                     "pagesize": result.get("pagesize", 20),
