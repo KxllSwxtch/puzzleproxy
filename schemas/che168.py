@@ -214,6 +214,8 @@ class Che168SearchFilters(BaseModel):
     service: Optional[str] = Field(default=None, description="Service type")
     price_min: Optional[float] = Field(default=None, description="Minimum price")
     price_max: Optional[float] = Field(default=None, description="Maximum price")
+    transmission: Optional[str] = Field(default=None, description="Transmission type (manual/automatic)")
+    mileage_max: Optional[float] = Field(default=None, description="Maximum mileage")
     sort: Optional[str] = Field(default=None, description="Sort order")
     ishideback: int = Field(default=0, description="Is hide back")
     srecom: int = Field(default=1, description="Search recommendation")

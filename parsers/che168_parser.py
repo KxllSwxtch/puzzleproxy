@@ -193,17 +193,14 @@ class Che168Parser:
                 return {
                     "returncode": json_data.get("returncode", 1),
                     "message": json_data.get("message", "API error"),
-                    "result": {"hotbrand": [], "allbrand": []},
+                    "result": {"hotbrand": [], "brands": []},
                     "success": False
                 }
 
             result = json_data.get("result", {})
 
-            # Parse brands from new getbrands response structure
-            hotbrands = []
-            allbrands = []
-
             # Parse hot brands
+            hotbrands = []
             for brand_data in result.get("hotbrand", []):
                 try:
                     brand = self._parse_brand(brand_data)
@@ -213,22 +210,52 @@ class Che168Parser:
                     logger.warning(f"Failed to parse hot brand: {str(e)}")
                     continue
 
-            # Parse all brands
-            for brand_data in result.get("allbrand", []):
+            # Parse brands from brand groups (new API structure)
+            brand_groups = result.get("brands", [])
+            all_brands_from_groups = []
+
+            for group in brand_groups:
                 try:
-                    brand = self._parse_brand(brand_data)
-                    if brand:
-                        allbrands.append(brand)
+                    letter = group.get("letter", "")
+                    brands_in_group = group.get("brand", [])
+
+                    for brand_data in brands_in_group:
+                        try:
+                            brand = self._parse_brand(brand_data)
+                            if brand:
+                                all_brands_from_groups.append(brand)
+                        except Exception as e:
+                            logger.warning(f"Failed to parse brand in group {letter}: {str(e)}")
+                            continue
                 except Exception as e:
-                    logger.warning(f"Failed to parse brand: {str(e)}")
+                    logger.warning(f"Failed to parse brand group: {str(e)}")
                     continue
+
+            # Combine hotbrands and brands from groups, then deduplicate by bid
+            seen_brand_ids = set()
+            combined_brands = []
+
+            # Add hotbrands first (they have priority)
+            for brand in hotbrands:
+                if brand.get("bid") not in seen_brand_ids:
+                    combined_brands.append(brand)
+                    seen_brand_ids.add(brand.get("bid"))
+
+            # Add brands from groups (skip if already in hotbrands)
+            for brand in all_brands_from_groups:
+                if brand.get("bid") not in seen_brand_ids:
+                    combined_brands.append(brand)
+                    seen_brand_ids.add(brand.get("bid"))
+
+            logger.info(f"Parsed {len(hotbrands)} hotbrands and {len(all_brands_from_groups)} brands from groups, total unique: {len(combined_brands)}")
 
             return {
                 "returncode": 0,
                 "message": "Success",
                 "result": {
                     "hotbrand": hotbrands,
-                    "allbrand": allbrands
+                    "brands": brand_groups,  # Keep original structure for frontend that needs grouped view
+                    "allbrand": combined_brands  # Add combined list for backward compatibility
                 },
                 "success": True
             }
@@ -238,7 +265,7 @@ class Che168Parser:
             return {
                 "returncode": 1,
                 "message": f"Parser error: {str(e)}",
-                "result": {"hotbrand": [], "allbrand": []},
+                "result": {"hotbrand": [], "brands": []},
                 "success": False
             }
 
