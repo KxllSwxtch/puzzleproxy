@@ -300,6 +300,120 @@ class Che168Service:
                 "success": False
             }
 
+    def get_car_info(self, info_id: int) -> Dict[str, Any]:
+        """
+        Get basic car information using Che168 getcarinfo API (v2)
+        This endpoint doesn't require request signing
+
+        Args:
+            info_id: Car listing ID
+
+        Returns:
+            Dictionary with basic car information
+        """
+        try:
+            url = "https://apiuscdt.che168.com/apic/v2/car/getcarinfo"
+
+            params = {
+                "infoid": str(info_id),
+                "_appid": "2sc.m"
+            }
+
+            # Use direct request for v2 API (no signature required)
+            response = self.session.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            json_data = response.json()
+
+            logger.info(f"✅ get_car_info: Successfully fetched info for car {info_id}")
+
+            # Return in expected format
+            if json_data.get("returncode") == 0 and "result" in json_data:
+                return {
+                    "returncode": json_data.get("returncode", 0),
+                    "message": json_data.get("message", "Success"),
+                    "result": json_data["result"]
+                }
+            else:
+                return {
+                    "returncode": json_data.get("returncode", -1),
+                    "message": json_data.get("message", "Failed to get car info"),
+                    "result": {}
+                }
+
+        except Exception as e:
+            logger.error(f"Error in get_car_info for {info_id}: {str(e)}")
+            return {
+                "returncode": -1,
+                "message": f"Service error: {str(e)}",
+                "result": {}
+            }
+
+    def get_car_params(self, info_id: int) -> Dict[str, Any]:
+        """
+        Get detailed car parameters using Che168 getparamtypeitems API (v1)
+        This endpoint doesn't require request signing
+
+        Args:
+            info_id: Car listing ID
+
+        Returns:
+            Dictionary with car technical specifications
+        """
+        try:
+            url = "https://apiuscdt.che168.com/api/v1/car/getparamtypeitems"
+
+            params = {
+                "infoid": str(info_id),
+                "_appid": "2sc.m"
+            }
+
+            # Use direct request for v1 API (no signature required)
+            response = self.session.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            json_data = response.json()
+
+            logger.info(f"✅ get_car_params: Successfully fetched params for car {info_id}")
+
+            # Return in expected format
+            if json_data.get("returncode") == 0 and "result" in json_data:
+                return {
+                    "returncode": json_data.get("returncode", 0),
+                    "message": json_data.get("message", "Success"),
+                    "result": json_data["result"]
+                }
+            else:
+                return {
+                    "returncode": json_data.get("returncode", -1),
+                    "message": json_data.get("message", "Failed to get car params"),
+                    "result": []
+                }
+
+        except Exception as e:
+            logger.error(f"Error in get_car_params for {info_id}: {str(e)}")
+            return {
+                "returncode": -1,
+                "message": f"Service error: {str(e)}",
+                "result": []
+            }
+
+    def get_car_analysis(self, info_id: int) -> Dict[str, Any]:
+        """
+        Get car analysis and evaluation
+        Note: This endpoint is currently not available on Che168 API
+
+        Args:
+            info_id: Car listing ID
+
+        Returns:
+            Dictionary indicating analysis is not available
+        """
+        logger.info(f"ℹ️ get_car_analysis: Analysis not available for car {info_id}")
+        return {
+            "returncode": -1,
+            "message": "Car analysis not available",
+            "result": {}
+        }
+
     def get_brands(self) -> Dict[str, Any]:
         """Get all available car brands from Che168"""
         try:

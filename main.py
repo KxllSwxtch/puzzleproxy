@@ -1421,7 +1421,7 @@ async def get_che168_car_info(
         Che168CarInfoResponse: Basic car information
     """
     try:
-        result = che168_service.get_car_detail(info_id)
+        result = che168_service.get_car_info(int(info_id))
         return result
 
     except Exception as e:
@@ -1443,7 +1443,7 @@ async def get_che168_car_params(
         Che168CarParamsResponse: Car technical specifications
     """
     try:
-        result = che168_service.get_car_detail(info_id)
+        result = che168_service.get_car_params(int(info_id))
         return result
 
     except Exception as e:
@@ -1465,7 +1465,7 @@ async def get_che168_car_analysis(
         Che168CarAnalysisResponse: Market analysis and price trends
     """
     try:
-        result = che168_service.get_car_detail(info_id)
+        result = che168_service.get_car_analysis(int(info_id))
         return result
 
     except Exception as e:
