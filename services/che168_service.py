@@ -270,7 +270,8 @@ class Che168Service:
 
     def get_car_detail(self, info_id: int) -> Dict[str, Any]:
         """
-        Get detailed information for a specific car
+        Get detailed information for a specific car by combining info and params endpoints
+        The v11 carinfo API is deprecated/broken, so we use v2 API endpoints instead
 
         Args:
             info_id: Car listing ID
@@ -279,25 +280,95 @@ class Che168Service:
             Dictionary with car details
         """
         try:
-            url = f"{self.base_url}/api/v11/carinfo"
+            logger.info(f"📋 get_car_detail: Fetching details for car {info_id}")
 
-            params = {
-                "infoid": str(info_id),
-                "pageid": f"{int(time.time())}_4145",
+            # Get car info from v2 API
+            info_response = self.get_car_info(info_id)
+            if info_response.get("returncode") != 0 or not info_response.get("result"):
+                logger.warning(f"⚠️ get_car_detail: Failed to get info for car {info_id}")
+                return {
+                    "returncode": 1,
+                    "message": info_response.get("message", "Failed to get car info"),
+                    "result": {
+                        "infoid": info_id,
+                        "title": None,
+                        "price": None,
+                        "year": None,
+                        "mileage": None,
+                        "location": None,
+                        "images": [],
+                        "description": "",
+                        "params": {},
+                        "seller_info": {}
+                    }
+                }
+
+            car_info = info_response["result"]
+
+            # Get car params from v1 API and convert to dict structure
+            params_response = self.get_car_params(info_id)
+            params_list = params_response.get("result", []) if params_response.get("returncode") == 0 else []
+
+            # Convert params list to dict for easier frontend consumption
+            car_params = {"params_list": params_list} if isinstance(params_list, list) else params_list
+
+            # Extract basic info and convert to strings
+            infoid = car_info.get("infoid", info_id)
+            title = car_info.get("carname", "") or car_info.get("title", "")
+            price = str(car_info.get("price", "") or car_info.get("showprice", ""))
+            year = str(car_info.get("firstregyear", "") or car_info.get("year", ""))
+            mileage = str(car_info.get("mileage", ""))
+            location = car_info.get("cname", "") or car_info.get("cityname", "")
+
+            # Extract images
+            images = []
+            if car_info.get("imageurl"):
+                images.append(car_info["imageurl"])
+            if car_info.get("imagelist"):
+                images.extend(car_info["imagelist"])
+
+            # Build result
+            result = {
+                "returncode": 0,
+                "message": "Success",
+                "result": {
+                    "infoid": infoid,
+                    "title": title,
+                    "price": price,
+                    "year": year,
+                    "mileage": mileage,
+                    "location": location,
+                    "images": images,
+                    "description": car_info.get("description", ""),
+                    "params": car_params,
+                    "seller_info": {
+                        "dealer_id": car_info.get("dealerid", 0),
+                        "dealer_name": car_info.get("dealername", ""),
+                        "phone": car_info.get("phone", ""),
+                    }
+                }
             }
 
-            json_data = self._make_request(url, params)
-            result = self.parser.parse_car_detail_response(json_data)
-
+            logger.info(f"✅ get_car_detail: Successfully constructed details for car {info_id}")
             return result
 
         except Exception as e:
-            logger.error(f"Error in get_car_detail: {str(e)}")
+            logger.error(f"❌ get_car_detail: Error for car {info_id}: {str(e)}")
             return {
                 "returncode": 1,
                 "message": f"Service error: {str(e)}",
-                "result": {},
-                "success": False
+                "result": {
+                    "infoid": info_id,
+                    "title": None,
+                    "price": None,
+                    "year": None,
+                    "mileage": None,
+                    "location": None,
+                    "images": [],
+                    "description": "",
+                    "params": {},
+                    "seller_info": {}
+                }
             }
 
     def get_car_info(self, info_id: int) -> Dict[str, Any]:

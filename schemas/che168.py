@@ -229,12 +229,12 @@ class Che168SearchFilters(BaseModel):
 class Che168CarDetail(BaseModel):
     """Detailed car information"""
 
-    infoid: int = Field(description="Car listing ID")
-    title: str = Field(description="Car title")
-    price: str = Field(description="Price")
-    year: str = Field(description="Year")
-    mileage: str = Field(description="Mileage")
-    location: str = Field(description="Location")
+    infoid: Optional[int] = Field(default=None, description="Car listing ID")
+    title: Optional[str] = Field(default=None, description="Car title")
+    price: Optional[str] = Field(default=None, description="Price")
+    year: Optional[str] = Field(default=None, description="Year")
+    mileage: Optional[str] = Field(default=None, description="Mileage")
+    location: Optional[str] = Field(default=None, description="Location")
     images: List[str] = Field(default=[], description="Car images")
     description: str = Field(default="", description="Car description")
     params: Dict[str, Any] = Field(default={}, description="Technical parameters")
