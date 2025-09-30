@@ -212,11 +212,7 @@ class Che168SearchFilters(BaseModel):
     seriesyearid: Optional[int] = Field(default=None, description="Series year ID")
     specid: Optional[int] = Field(default=None, description="Specification ID")
     service: Optional[str] = Field(default=None, description="Service type")
-    price_min: Optional[float] = Field(default=None, description="Minimum price")
-    price_max: Optional[float] = Field(default=None, description="Maximum price")
-    transmission: Optional[str] = Field(default=None, description="Transmission type (manual/automatic)")
-    mileage_max: Optional[float] = Field(default=None, description="Maximum mileage")
-    sort: Optional[str] = Field(default=None, description="Sort order")
+    sort: Optional[int] = Field(default=None, description="Sort order (0=default, 1=price asc, 2=price desc, 3=mileage, 4=age, 5=time)")
     ishideback: int = Field(default=0, description="Is hide back")
     srecom: int = Field(default=1, description="Search recommendation")
     personalizedpush: int = Field(default=1, description="Personalized push")
@@ -256,7 +252,7 @@ class Che168CarInfoResponse(BaseModel):
 
     returncode: int = Field(description="Return code (0=success)")
     message: str = Field(description="Response message")
-    result: Dict[str, Any] = Field(description="Basic car info")
+    result: Optional[Dict[str, Any]] = Field(default=None, description="Basic car info")
 
 
 class Che168CarParamsResponse(BaseModel):
@@ -264,7 +260,7 @@ class Che168CarParamsResponse(BaseModel):
 
     returncode: int = Field(description="Return code (0=success)")
     message: str = Field(description="Response message")
-    result: Dict[str, Any] = Field(description="Car parameters")
+    result: Optional[List[Dict[str, Any]]] = Field(default=None, description="Car parameters")
 
 
 class Che168CarAnalysisResponse(BaseModel):

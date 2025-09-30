@@ -337,7 +337,7 @@ class Che168Service:
                 return {
                     "returncode": json_data.get("returncode", -1),
                     "message": json_data.get("message", "Failed to get car info"),
-                    "result": {}
+                    "result": None
                 }
 
         except Exception as e:
@@ -345,7 +345,7 @@ class Che168Service:
             return {
                 "returncode": -1,
                 "message": f"Service error: {str(e)}",
-                "result": {}
+                "result": None
             }
 
     def get_car_params(self, info_id: int) -> Dict[str, Any]:
@@ -385,7 +385,7 @@ class Che168Service:
                 return {
                     "returncode": json_data.get("returncode", -1),
                     "message": json_data.get("message", "Failed to get car params"),
-                    "result": []
+                    "result": None
                 }
 
         except Exception as e:
@@ -393,7 +393,7 @@ class Che168Service:
             return {
                 "returncode": -1,
                 "message": f"Service error: {str(e)}",
-                "result": []
+                "result": None
             }
 
     def get_car_analysis(self, info_id: int) -> Dict[str, Any]:
