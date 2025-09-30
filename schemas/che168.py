@@ -192,6 +192,8 @@ class Che168SearchResult(BaseModel):
     subservice: List[Che168ServiceOption] = Field(default=[], description="Sub service options")
     filters: List[Che168ServiceOption] = Field(default=[], description="Filter options")
     carlist: List[Che168CarListing] = Field(default=[], description="Car listings")
+    models: Optional[List[Dict[str, Any]]] = Field(default=None, description="Extracted models from filters")
+    series: Optional[List[Dict[str, Any]]] = Field(default=None, description="Extracted series from filters (alias for models)")
 
 
 class Che168SearchResponse(BaseModel):
