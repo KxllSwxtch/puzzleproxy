@@ -47,6 +47,13 @@ from schemas.che168 import (
 )
 from services.che168_service import Che168Service
 
+# Encar Record imports
+from schemas.encar_record import (
+    EncarRecordResponse,
+    EncarRecordErrorResponse,
+)
+from services.encar_record_service import EncarRecordService
+
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -331,6 +338,7 @@ proxy_client = EncarProxyClient()
 # Initialize KBChaChaCha service WITH proxy for Korean site access
 kbchachacha_service = KBChaChaService(proxy_client)
 che168_service = Che168Service(proxy_client)
+encar_record_service = EncarRecordService(proxy_client)
 
 
 @app.on_event("shutdown")
@@ -520,6 +528,7 @@ async def root():
         "version": "3.1",
         "endpoints": {
             "cars": ["/api/catalog", "/api/nav"],
+            "encar_records": ["/api/encar/record/{vehicle_id}/{car_plate}"],
             "kbchachacha": [
                 "/api/kbchachacha/manufacturers",
                 "/api/kbchachacha/models/{maker_code}",
@@ -1193,6 +1202,88 @@ async def get_kbchachacha_car_details(car_seq: str):
     except Exception as e:
         logger.error(f"Error in KBChaChaCha car details endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+# =============================================================================
+# ENCAR RECORD/ACCIDENT HISTORY ENDPOINTS
+# =============================================================================
+
+@app.get("/api/encar/record/{vehicle_id}/{car_plate}", response_model=Union[EncarRecordResponse, EncarRecordErrorResponse])
+async def get_encar_vehicle_record(
+    vehicle_id: str = Path(..., description="Encar vehicle ID (e.g., '40243547')"),
+    car_plate: str = Path(..., description="Car plate number in Korean (e.g., '283구7812')")
+):
+    """
+    Get vehicle accident/insurance record history from Encar
+
+    **Parameters:**
+    - **vehicle_id**: Encar vehicle ID (numeric string)
+    - **car_plate**: Car plate number in Korean format (e.g., "283구7812")
+
+    **Returns:**
+    Comprehensive accident and insurance history including:
+    - Accident counts (own-fault vs other-party)
+    - Detailed accident records with costs breakdown
+    - Insurance claim amounts
+    - Ownership change history
+    - Special conditions (theft, total loss, flood damage)
+    - Car information changes
+
+    **Response Codes:**
+    - **200**: Success with accident data
+    - **404**: No accident data found (normal for clean history cars)
+    - **502**: Failed to fetch data from source
+
+    **Example Usage:**
+    ```
+    GET /api/encar/record/40243547/283구7812
+    ```
+
+    **Accident Type Codes:**
+    - **1**: 자차 (Own vehicle damage)
+    - **2**: 대인 (Personal injury to others)
+    - **3**: 대물 (Property damage to others)
+    """
+    try:
+        logger.info(f"Vehicle record request: vehicle_id={vehicle_id}, car_plate={car_plate}")
+
+        result = await encar_record_service.get_vehicle_record(vehicle_id, car_plate)
+
+        if not result.success:
+            # Return error response with appropriate status code
+            error_code = getattr(result, 'error_code', '500')
+
+            if error_code == '404':
+                # 404 is normal for cars without accident history
+                logger.info(f"No accident data for vehicle {vehicle_id} (clean history)")
+                return JSONResponse(
+                    status_code=200,  # Return 200 with success=False for clean cars
+                    content=result.dict()
+                )
+            elif error_code == '403':
+                logger.warning(f"Access denied for vehicle {vehicle_id}")
+                return JSONResponse(status_code=502, content=result.dict())
+            else:
+                logger.error(f"Error fetching record: {result.error}")
+                return JSONResponse(status_code=502, content=result.dict())
+
+        logger.info(f"Successfully fetched record for vehicle {vehicle_id}")
+        return result
+
+    except Exception as e:
+        logger.error(f"Unexpected error in encar record endpoint: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"Internal server error: {str(e)}",
+                "error_code": "500",
+                "meta": {
+                    "vehicle_id": vehicle_id,
+                    "car_plate": car_plate
+                }
+            }
+        )
 
 
 # ================================
