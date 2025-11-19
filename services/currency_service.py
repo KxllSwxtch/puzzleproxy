@@ -37,13 +37,13 @@ class CurrencyService:
                 'origin': 'https://search.naver.com',
                 'priority': 'u=1, i',
                 'referer': 'https://search.naver.com/',
-                'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+                'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"macOS"',
                 'sec-fetch-dest': 'empty',
                 'sec-fetch-mode': 'cors',
                 'sec-fetch-site': 'same-site',
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
             }
 
             # Exact parameters from the provided Python example
@@ -93,7 +93,9 @@ class CurrencyService:
             # Extract rate from country[1].value (KRW rate)
             try:
                 rate_text = country[1].get('value', '')
-                original_rate = float(rate_text)
+                # Remove commas from the rate string (e.g., "16.54" or "1,466.10" -> "1466.10")
+                rate_text_clean = rate_text.replace(',', '')
+                original_rate = float(rate_text_clean)
             except (ValueError, KeyError, IndexError) as e:
                 logger.error(f"❌ Failed to extract rate: {e}")
                 return self._create_fallback_response(f"Failed to extract rate: {e}")
@@ -159,13 +161,13 @@ class CurrencyService:
                 'origin': 'https://search.naver.com',
                 'priority': 'u=1, i',
                 'referer': 'https://search.naver.com/',
-                'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+                'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"macOS"',
                 'sec-fetch-dest': 'empty',
                 'sec-fetch-mode': 'cors',
                 'sec-fetch-site': 'same-site',
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
             }
 
             # Parameters for USD/KRW conversion
@@ -215,7 +217,9 @@ class CurrencyService:
             # Extract rate from country[1].value (KRW rate)
             try:
                 rate_text = country[1].get('value', '')
-                original_rate = float(rate_text)
+                # Remove commas from the rate string (e.g., "1,466.10" -> "1466.10")
+                rate_text_clean = rate_text.replace(',', '')
+                original_rate = float(rate_text_clean)
             except (ValueError, KeyError, IndexError) as e:
                 logger.error(f"❌ Failed to extract rate: {e}")
                 return self._create_usd_fallback_response(f"Failed to extract rate: {e}")
