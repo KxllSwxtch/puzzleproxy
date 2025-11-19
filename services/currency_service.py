@@ -18,9 +18,8 @@ class CurrencyService:
 
     def __init__(self):
         self.fallback_rub_rate = 16.54   # Standardized fallback rate for RUB
-        self.fallback_usd_rate = 1375.50 # Standardized fallback rate for USD
+        self.fallback_usd_rate = 1385.50 # Standardized fallback rate for USD
         self.rub_adjustment = -0.80      # Rate adjustment for RUB as specified
-        self.usd_adjustment = -10.0      # Rate adjustment for USD (configurable)
 
     def fetch_naver_rub_rate(self) -> CurrencyRateResponse:
         """
@@ -228,15 +227,15 @@ class CurrencyService:
                 logger.error(f"❌ Invalid rate value: {original_rate}")
                 return self._create_usd_fallback_response(f"Invalid rate value: {original_rate}")
 
-            # Apply adjustment: subtract 10.0 and round to 2 decimal places
-            adjusted_rate = round(original_rate + self.usd_adjustment, 2)
+            # Round to 2 decimal places
+            rate = round(original_rate, 2)
 
-            logger.info(f"✅ Successfully fetched USD/KRW rate: {original_rate} -> {adjusted_rate} (adjusted {self.usd_adjustment})")
+            logger.info(f"✅ Successfully fetched USD/KRW rate: {rate}")
 
             return UsdCurrencyRateResponse(
                 success=True,
                 data=UsdCurrencyRateData(
-                    usdToKrwRate=adjusted_rate,
+                    usdToKrwRate=rate,
                     originalRate=original_rate
                 ),
                 source="naver",

@@ -1340,7 +1340,7 @@ def get_usd_krw_rate():
     Get current USD to KRW exchange rate from Naver API
 
     This endpoint fetches the exchange rate directly from Naver's API to bypass
-    browser CORS restrictions. The rate is adjusted by -10.0 as specified.
+    browser CORS restrictions.
 
     Returns:
         UsdCurrencyRateResponse: Current exchange rate with metadata
