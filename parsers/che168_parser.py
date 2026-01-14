@@ -51,10 +51,14 @@ class Che168Parser:
                     "returncode": json_data.get("returncode", 1),
                     "message": json_data.get("message", "API error"),
                     "result": {
-                        "list": [],
+                        "carlist": [],
                         "totalcount": 0,
                         "pageindex": 1,
-                        "pagesize": 20
+                        "pagesize": 20,
+                        "pagecount": 0,
+                        "queryid": "",
+                        "service": [],
+                        "filters": []
                     },
                     "success": False
                 }
@@ -133,10 +137,14 @@ class Che168Parser:
                 "returncode": 1,
                 "message": f"Parser error: {str(e)}",
                 "result": {
-                    "list": [],
+                    "carlist": [],
                     "totalcount": 0,
                     "pageindex": 1,
-                    "pagesize": 20
+                    "pagesize": 20,
+                    "pagecount": 0,
+                    "queryid": "",
+                    "service": [],
+                    "filters": []
                 },
                 "success": False
             }

@@ -184,7 +184,7 @@ class Che168SearchResult(BaseModel):
     totalcount: int = Field(description="Total car count")
     pagesize: int = Field(description="Page size")
     pageindex: int = Field(description="Current page index")
-    pagecount: int = Field(description="Total page count")
+    pagecount: int = Field(default=0, description="Total page count")
     queryid: str = Field(default="", description="Query ID")
     styletype: int = Field(default=0, description="Style type")
     showtype: int = Field(default=0, description="Show type")
