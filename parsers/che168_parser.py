@@ -489,3 +489,93 @@ class Che168Parser:
             "position": cpc_data.get("position", 0),
             "encryptinfo": cpc_data.get("encryptinfo", ""),
         }
+
+    def create_filters_response(self, brands: List[Dict]) -> Dict[str, Any]:
+        """
+        Create structured filters response from brands and predefined options
+
+        Args:
+            brands: List of available car brands
+
+        Returns:
+            Dictionary with all filter options
+        """
+        try:
+            price_ranges = [
+                {"value": "0-5", "label": "0-5万元"},
+                {"value": "5-10", "label": "5-10万元"},
+                {"value": "10-15", "label": "10-15万元"},
+                {"value": "15-20", "label": "15-20万元"},
+                {"value": "20-30", "label": "20-30万元"},
+                {"value": "30-50", "label": "30-50万元"},
+                {"value": "50-100", "label": "50-100万元"},
+                {"value": "100-", "label": "100万元以上"}
+            ]
+
+            age_ranges = [
+                {"value": "0-1", "label": "1年以内"},
+                {"value": "1-3", "label": "1-3年"},
+                {"value": "3-5", "label": "3-5年"},
+                {"value": "5-7", "label": "5-7年"},
+                {"value": "7-10", "label": "7-10年"},
+                {"value": "10-", "label": "10年以上"}
+            ]
+
+            mileage_ranges = [
+                {"value": "0-1", "label": "1万公里以内"},
+                {"value": "1-3", "label": "1-3万公里"},
+                {"value": "3-6", "label": "3-6万公里"},
+                {"value": "6-10", "label": "6-10万公里"},
+                {"value": "10-15", "label": "10-15万公里"},
+                {"value": "15-", "label": "15万公里以上"}
+            ]
+
+            fuel_types = [
+                {"id": 1, "name": "汽油", "label": "Gasoline"},
+                {"id": 2, "name": "柴油", "label": "Diesel"},
+                {"id": 3, "name": "电动", "label": "Electric"},
+                {"id": 4, "name": "油电混合", "label": "Hybrid"},
+                {"id": 5, "name": "插电式混合", "label": "Plug-in Hybrid"}
+            ]
+
+            transmissions = [
+                {"value": "manual", "label": "手动"},
+                {"value": "automatic", "label": "自动"},
+                {"value": "amt", "label": "手自一体"},
+                {"value": "dct", "label": "双离合"},
+                {"value": "cvt", "label": "无级变速"}
+            ]
+
+            displacements = [
+                {"value": "0-1.0", "label": "1.0L以下"},
+                {"value": "1.0-1.6", "label": "1.0-1.6L"},
+                {"value": "1.6-2.0", "label": "1.6-2.0L"},
+                {"value": "2.0-2.5", "label": "2.0-2.5L"},
+                {"value": "2.5-3.0", "label": "2.5-3.0L"},
+                {"value": "3.0-4.0", "label": "3.0-4.0L"},
+                {"value": "4.0-", "label": "4.0L以上"}
+            ]
+
+            return {
+                "success": True,
+                "brands": brands,
+                "price_ranges": price_ranges,
+                "age_ranges": age_ranges,
+                "mileage_ranges": mileage_ranges,
+                "fuel_types": fuel_types,
+                "transmissions": transmissions,
+                "displacements": displacements
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to create filters response: {e}")
+            return {
+                "success": False,
+                "brands": [],
+                "price_ranges": [],
+                "age_ranges": [],
+                "mileage_ranges": [],
+                "fuel_types": [],
+                "transmissions": [],
+                "displacements": []
+            }

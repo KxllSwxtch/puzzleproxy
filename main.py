@@ -1410,7 +1410,7 @@ async def get_che168_brands():
         Che168BrandsResponse: List of hot brands and all brands with metadata
     """
     try:
-        result = che168_service.get_brands()
+        result = await che168_service.get_brands()
         return result
 
     except Exception as e:
@@ -1437,7 +1437,7 @@ async def get_che168_models(brand_id: int):
     """
     try:
         logger.info(f"Fetching models for brand_id={brand_id}")
-        result = che168_service.get_models(brand_id)
+        result = await che168_service.get_models(brand_id)
         return result
 
     except Exception as e:
@@ -1465,7 +1465,7 @@ async def get_che168_years(brand_id: int, series_id: int):
     """
     try:
         logger.info(f"Fetching years for brand_id={brand_id}, series_id={series_id}")
-        result = che168_service.get_years(brand_id, series_id)
+        result = await che168_service.get_years(brand_id, series_id)
         return result
 
     except Exception as e:
@@ -1487,7 +1487,7 @@ async def search_che168_cars(filters: Che168SearchFilters):
     try:
         # Convert Pydantic model to dict for service
         filters_dict = filters.dict(exclude_unset=True)
-        result = che168_service.search_cars(filters_dict)
+        result = await che168_service.search_cars(filters_dict)
         return result
 
     except Exception as e:
@@ -1509,7 +1509,7 @@ async def get_che168_car_detail(
         Che168CarDetailResponse: Complete car details including specs and seller info
     """
     try:
-        result = che168_service.get_car_detail(info_id)
+        result = await che168_service.get_car_detail(int(info_id))
         return result
 
     except Exception as e:
@@ -1531,7 +1531,7 @@ async def get_che168_car_info(
         Che168CarInfoResponse: Basic car information
     """
     try:
-        result = che168_service.get_car_info(int(info_id))
+        result = await che168_service.get_car_info(int(info_id))
         return result
 
     except Exception as e:
@@ -1553,7 +1553,7 @@ async def get_che168_car_params(
         Che168CarParamsResponse: Car technical specifications
     """
     try:
-        result = che168_service.get_car_params(int(info_id))
+        result = await che168_service.get_car_params(int(info_id))
         return result
 
     except Exception as e:
@@ -1575,7 +1575,7 @@ async def get_che168_car_analysis(
         Che168CarAnalysisResponse: Market analysis and price trends
     """
     try:
-        result = che168_service.get_car_analysis(int(info_id))
+        result = await che168_service.get_car_analysis(int(info_id))
         return result
 
     except Exception as e:
