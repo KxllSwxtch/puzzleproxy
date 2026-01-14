@@ -93,10 +93,18 @@ class Che168Service:
         for name, value in cookies.items():
             self.session.cookies.set(name, value)
 
-        # Setup proxy if available - but skip for Chinese sites as they may not be compatible
-        # Chinese sites like Che168 are often accessible without proxy and may have issues with Korean proxies
-        # if self.proxy_client and hasattr(self.proxy_client, 'session') and hasattr(self.proxy_client.session, 'proxies'):
-        #     self.session.proxies = self.proxy_client.session.proxies
+        # Setup Chinese proxy if available
+        if self.proxy_client and hasattr(self.proxy_client, 'proxy_configs'):
+            proxy_configs = self.proxy_client.proxy_configs
+            if proxy_configs and len(proxy_configs) > 0:
+                proxy_info = proxy_configs[0]
+                proxy_url = f"http://{proxy_info['auth']}@{proxy_info['proxy']}"
+                self.session.proxies = {
+                    "http": proxy_url,
+                    "https": proxy_url
+                }
+                self.proxy_name = proxy_info.get('name', 'Unknown')
+                logger.info(f"Che168 service configured with proxy: {proxy_info['name']} ({proxy_info['location']})")
 
     def _rate_limit(self):
         """Rate limiting to avoid being blocked"""

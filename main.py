@@ -69,13 +69,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Конфигурация residential прокси
+# Конфигурация residential прокси (Korean - for KBChaChaCha and Korean sites)
 PROXY_CONFIGS = [
     {
         "name": "Oxylabs Proxy",
         "proxy": "pr.oxylabs.io:7777",
         "auth": "customer-puzzle_KbiMl-cc-kr:Puzzle_korea89",
         "location": "South Korea",
+        "provider": "oxylabs",
+    },
+]
+
+# Chinese Proxy Configuration (for Che168 and Chinese sites)
+CN_PROXY_CONFIGS = [
+    {
+        "name": "Oxylabs China",
+        "proxy": "cn-pr.oxylabs.io:10000",
+        "auth": "customer-puzzle_KbiMl-cc-cn:Puzzle_korea89",
+        "location": "China",
         "provider": "oxylabs",
     },
 ]
@@ -122,7 +133,9 @@ BASE_HEADERS = {
 class EncarProxyClient:
     """Продвинутый клиент для обхода защиты Encar API с residential прокси"""
 
-    def __init__(self):
+    def __init__(self, proxy_configs=None, name="Default"):
+        self.proxy_configs = proxy_configs or PROXY_CONFIGS  # Use passed configs or default
+        self.name = name
         self.session = requests.Session()
         self.current_proxy_index = 0
         self.request_count = 0
@@ -180,15 +193,15 @@ class EncarProxyClient:
 
     def _rotate_proxy(self):
         """Ротация residential прокси"""
-        if PROXY_CONFIGS:
-            proxy_info = PROXY_CONFIGS[self.current_proxy_index % len(PROXY_CONFIGS)]
+        if self.proxy_configs:
+            proxy_info = self.proxy_configs[self.current_proxy_index % len(self.proxy_configs)]
             proxy_config = get_proxy_config(proxy_info)
             self.session.proxies = proxy_config
             self.current_proxy_index += 1
             logger.info(
-                f"Switched to {proxy_info['name']} ({proxy_info['location']}) via {proxy_info['provider']}"
+                f"[{self.name}] Switched to {proxy_info['name']} ({proxy_info['location']}) via {proxy_info['provider']}"
             )
-            logger.info(f"Proxy: {proxy_info['proxy']}")
+            logger.info(f"[{self.name}] Proxy: {proxy_info['proxy']}")
 
     def _create_new_session(self):
         """Создает новую сессию для полного сброса IP"""
@@ -332,12 +345,18 @@ class EncarProxyClient:
         return {"success": False, "error": "Max retries exceeded", "url": url}
 
 
-# Глобальный клиент
-proxy_client = EncarProxyClient()
+# Глобальный клиент (Korean proxy for Korean sites)
+proxy_client = EncarProxyClient(name="KR")
 
-# Initialize KBChaChaCha service WITH proxy for Korean site access
+# Chinese proxy client for Che168 and Chinese sites
+cn_proxy_client = EncarProxyClient(proxy_configs=CN_PROXY_CONFIGS, name="CN")
+
+# Initialize KBChaChaCha service WITH Korean proxy for Korean site access
 kbchachacha_service = KBChaChaService(proxy_client)
-che168_service = Che168Service(proxy_client)
+
+# Initialize Che168 service WITH Chinese proxy for Chinese site access
+che168_service = Che168Service(cn_proxy_client)
+
 encar_record_service = EncarRecordService(proxy_client)
 
 
