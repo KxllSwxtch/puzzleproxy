@@ -3,7 +3,9 @@ import asyncio
 import random
 import time
 import os
-from datetime import datetime
+import threading
+import re
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Annotated
 from fastapi import FastAPI, Query, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
@@ -115,19 +117,134 @@ USER_AGENTS = [
 ]
 
 
-# Базовые заголовки
+# Базовые заголовки (same-origin for cars.82auto.com API)
 BASE_HEADERS = {
     "accept": "*/*",
     "accept-language": "en,ru;q=0.9,en-CA;q=0.8,la;q=0.7,fr;q=0.6,ko;q=0.5",
-    "origin": "https://cars.prokorea.trading",
+    "origin": "https://cars.82auto.com",
     "priority": "u=1, i",
-    "referer": "https://cars.prokorea.trading/",
+    "referer": "https://cars.82auto.com/",
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": '"macOS"',
     "sec-fetch-dest": "empty",
     "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site",
+    "sec-fetch-site": "same-origin",
 }
+
+
+class TokenManager:
+    """
+    Thread-safe manager for x-api-token cookie required by cars.82auto.com API.
+
+    The token is acquired by making a GET request to the main site and extracting
+    the x-api-token cookie from the response. Tokens are cached with a 1-hour TTL.
+    """
+
+    TOKEN_URL = "https://cars.82auto.com/"
+    TOKEN_TTL = timedelta(hours=1)
+
+    def __init__(self):
+        self._token: Optional[str] = None
+        self._token_acquired_at: Optional[datetime] = None
+        self._lock = threading.Lock()
+
+    def get_token(self, session: requests.Session, headers: Dict[str, str]) -> Optional[str]:
+        """
+        Get a valid x-api-token, fetching a new one if necessary.
+
+        Args:
+            session: The requests session to use for fetching (with proxy configured)
+            headers: Headers to use for the token request
+
+        Returns:
+            The x-api-token string, or None if acquisition failed
+        """
+        with self._lock:
+            if self.is_valid():
+                logger.debug("Using cached x-api-token")
+                return self._token
+
+            return self._fetch_new_token(session, headers)
+
+    def _fetch_new_token(self, session: requests.Session, headers: Dict[str, str]) -> Optional[str]:
+        """
+        Fetch a new x-api-token from cars.82auto.com.
+
+        The token is extracted from:
+        1. Response cookies (primary)
+        2. Set-Cookie header (fallback)
+        3. Session cookies after request (fallback)
+        """
+        logger.info("Acquiring new x-api-token from cars.82auto.com...")
+
+        try:
+            # Make request to main site to get token cookie
+            response = session.get(
+                self.TOKEN_URL,
+                headers=headers,
+                timeout=30,
+                allow_redirects=True
+            )
+
+            token = None
+
+            # Method 1: Check response cookies
+            if 'x-api-token' in response.cookies:
+                token = response.cookies['x-api-token']
+                logger.info(f"Token acquired from response cookies: {token[:30]}...")
+
+            # Method 2: Check Set-Cookie header
+            if not token:
+                set_cookie = response.headers.get('Set-Cookie', '')
+                match = re.search(r'x-api-token=([^;]+)', set_cookie)
+                if match:
+                    token = match.group(1)
+                    logger.info(f"Token acquired from Set-Cookie header: {token[:30]}...")
+
+            # Method 3: Check session cookies (cookies persist in session)
+            if not token and 'x-api-token' in session.cookies:
+                token = session.cookies['x-api-token']
+                logger.info(f"Token acquired from session cookies: {token[:30]}...")
+
+            if token:
+                self._token = token
+                self._token_acquired_at = datetime.now()
+                logger.info("x-api-token successfully acquired and cached")
+                return token
+            else:
+                logger.warning("No x-api-token found in response")
+                return None
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to acquire x-api-token: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error acquiring x-api-token: {e}")
+            return None
+
+    def invalidate(self) -> None:
+        """Invalidate the current token (call on 401 errors)."""
+        with self._lock:
+            logger.info("Invalidating x-api-token")
+            self._token = None
+            self._token_acquired_at = None
+
+    def is_valid(self) -> bool:
+        """Check if the current token is valid (exists and not expired)."""
+        if not self._token or not self._token_acquired_at:
+            return False
+
+        age = datetime.now() - self._token_acquired_at
+        return age < self.TOKEN_TTL
+
+    def get_current_token(self) -> Optional[str]:
+        """Get the current token without fetching a new one (for health checks)."""
+        with self._lock:
+            return self._token
+
+
+# Global TokenManager instance
+token_manager = TokenManager()
 
 
 class EncarProxyClient:
@@ -250,13 +367,20 @@ class EncarProxyClient:
                 # Получаем свежие заголовки
                 headers = self._get_dynamic_headers()
 
+                # Get x-api-token for cars.82auto.com API
+                token = token_manager.get_token(self.session, headers)
+                cookies = {}
+                if token:
+                    cookies['x-api-token'] = token
+                    logger.debug(f"Using x-api-token: {token[:30]}...")
+
                 logger.info(f"Attempt {attempt + 1}/{max_retries}: {url}")
                 logger.info(f"Using UA: {headers['user-agent'][:50]}...")
 
                 # Выполняем запрос в отдельном потоке
                 loop = asyncio.get_event_loop()
                 response = await loop.run_in_executor(
-                    None, lambda: self.session.get(url, headers=headers)
+                    None, lambda: self.session.get(url, headers=headers, cookies=cookies)
                 )
 
                 logger.info(f"Response status: {response.status_code}")
@@ -270,6 +394,11 @@ class EncarProxyClient:
                         "url": url,
                         "attempt": attempt + 1,
                     }
+                elif response.status_code == 401:
+                    logger.warning("401 Unauthorized - invalidating token and retrying")
+                    token_manager.invalidate()
+                    await asyncio.sleep(1)
+                    continue
                 elif response.status_code == 403:
                     logger.warning(f"IP blacklisted (403) - creating new session")
                     self._create_new_session()
@@ -512,6 +641,14 @@ async def health_check():
             providers[provider] = 0
         providers[provider] += 1
 
+    # Token manager status
+    current_token = token_manager.get_current_token()
+    token_status = {
+        "has_token": current_token is not None,
+        "is_valid": token_manager.is_valid(),
+        "token_preview": f"{current_token[:30]}..." if current_token else None,
+    }
+
     return {
         "status": "healthy",
         "proxy_client": {
@@ -530,6 +667,7 @@ async def health_check():
             "providers": providers,
             "proxy_type": "Residential multi-provider with session rotation",
         },
+        "token_manager": token_status,
         "services": {
             "encar_api": "✅ Active (cars) - with proxy",
             "kbchachacha_cars": "✅ Active (Korean car marketplace) - with proxy",
@@ -563,6 +701,8 @@ async def root():
         "features": [
             "User-Agent rotation",
             "Multi-provider residential proxy rotation (Korea) - for cars",
+            "Auto x-api-token acquisition and refresh",
+            "401 error recovery with token refresh",
             "Automatic session rotation on 403 errors",
             "Rate limiting protection",
             "Retry logic with exponential backoff",
