@@ -65,6 +65,15 @@ class ValidationWorker:
             try:
                 await self._run_validation_cycle()
                 self._cycle_count += 1
+
+                # Purge entries older than 7 days every 100 cycles (~100 min)
+                if self._cycle_count % 100 == 0:
+                    try:
+                        purged = self.che168_service.sold_registry.purge_old_entries(604800)
+                        if purged > 0:
+                            logger.info(f"Auto-purged {purged} old sold car entries")
+                    except Exception as purge_err:
+                        logger.debug(f"Auto-purge error: {purge_err}")
             except asyncio.CancelledError:
                 break
             except Exception as e:

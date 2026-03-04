@@ -1660,6 +1660,43 @@ async def get_che168_sold_stats():
         raise HTTPException(status_code=500, detail=f"Failed to get sold stats: {str(e)}")
 
 
+@app.post("/api/che168/admin/purge-sold-cars")
+async def purge_che168_sold_cars(max_age_days: int = Query(default=7, ge=1, le=90)):
+    """Purge sold car entries older than max_age_days."""
+    try:
+        max_age_seconds = max_age_days * 86400
+        removed = che168_service.sold_registry.purge_old_entries(max_age_seconds)
+        return {
+            "returncode": 0,
+            "message": f"Purged {removed} entries older than {max_age_days} days",
+            "result": {
+                "removed_count": removed,
+                "registry_stats": che168_service.sold_registry.get_stats(),
+            },
+        }
+    except Exception as e:
+        logger.error(f"Error purging sold cars: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to purge sold cars: {str(e)}")
+
+
+@app.post("/api/che168/admin/clear-sold-cars")
+async def clear_che168_sold_cars():
+    """Clear all sold car entries from the registry."""
+    try:
+        removed = che168_service.sold_registry.clear_all()
+        return {
+            "returncode": 0,
+            "message": f"Cleared all {removed} sold car entries",
+            "result": {
+                "removed_count": removed,
+                "registry_stats": che168_service.sold_registry.get_stats(),
+            },
+        }
+    except Exception as e:
+        logger.error(f"Error clearing sold cars: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to clear sold cars: {str(e)}")
+
+
 @app.get("/api/che168/validation-status")
 async def get_che168_validation_status():
     """Get background validation worker status."""

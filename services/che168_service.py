@@ -33,6 +33,10 @@ SIGNATURE_ERROR_MESSAGES = ["签名错误", "signature error", "sign error", "in
 # Known sold/expired car indicators from Che168 API
 SOLD_CAR_INDICATORS = ["已成交", "已下架", "已售出", "车源已售", "已过期"]
 
+# Che168 API signing - common AutoHome mobile web signing pattern
+# The salt wraps sorted parameter concatenation before MD5 hashing
+CHE168_SIGN_SALT = "che168_2sc_secret"  # Placeholder — will test multiple salts
+
 # Che168 API Base URLs (direct access)
 CHE168_SEARCH_API = "https://api2scsou.che168.com"
 CHE168_DETAIL_API = "https://apiuscdt.che168.com"
@@ -175,7 +179,7 @@ class Che168Service:
 
         # Track consecutive signature errors
         self._signature_error_count = 0
-        self._max_signature_errors = 2
+        self._max_signature_errors = 5
 
         # Playwright availability: None=untested, True=works, False=unavailable
         self._playwright_available = None
@@ -345,6 +349,19 @@ class Che168Service:
         """Get or generate a persistent device ID"""
         return self._device_id
 
+    def _compute_sign(self, params: Dict[str, Any]) -> str:
+        """Compute _sign for Che168 API using MD5 of sorted params + salt."""
+        sorted_keys = sorted(params.keys())
+        # Format: key1value1key2value2... (no separators, no = signs)
+        param_str = "".join(
+            f"{k}{params[k]}" for k in sorted_keys
+            if params[k] is not None and str(params[k]) != ""
+        )
+        sign_input = f"{CHE168_SIGN_SALT}{param_str}{CHE168_SIGN_SALT}"
+        sign_hash = hashlib.md5(sign_input.encode('utf-8')).hexdigest().upper()
+        logger.debug(f"🔏 Sign: keys={sorted_keys}, hash={sign_hash[:8]}...")
+        return sign_hash
+
     def _build_request_params(self, base_params: Dict[str, Any]) -> Dict[str, Any]:
         """Build complete request parameters with all required fields"""
         params = dict(base_params)
@@ -356,6 +373,7 @@ class Che168Service:
         params['userid'] = '0'
         params['s_pid'] = '0'
         params['s_cid'] = '0'
+        params['_timestamp'] = str(int(time.time()))
 
         # Session-specific params if available
         if self._session_initialized and self._session_cookies:
@@ -363,6 +381,8 @@ class Che168Service:
             if session_id:
                 params['sessionid'] = session_id
 
+        # Compute sign from all other params (must be last)
+        params['_sign'] = self._compute_sign(params)
         return params
 
     def _build_direct_url(self, base_url: str, endpoint_path: str, params: Dict[str, Any] = None) -> str:
@@ -463,6 +483,13 @@ class Che168Service:
         if params is None:
             params = {}
 
+        # Reset signature errors after 5-minute cooldown to allow retrying
+        if self._signature_error_count >= self._max_signature_errors:
+            if time.time() - self._last_session_time > 300:
+                logger.info("🔄 Resetting signature errors after 5-min cooldown")
+                self._signature_error_count = 0
+                self._session_initialized = False
+
         # Check if we should skip API and go straight to static fallback
         if self._signature_error_count >= self._max_signature_errors:
             logger.info(f"⏭️ Skipping API due to {self._signature_error_count} signature errors, using static fallback")
@@ -526,7 +553,12 @@ class Che168Service:
                 # Check for signature error in response
                 if self._is_signature_error(json_data):
                     self._signature_error_count += 1
-                    logger.warning(f"⚠️ Signature error detected (count: {self._signature_error_count}): {json_data.get('message', 'Unknown')}")
+                    logger.warning(
+                        f"⚠️ Signature error (count: {self._signature_error_count}): "
+                        f"{json_data.get('message', 'Unknown')}. "
+                        f"sign={full_params.get('_sign', 'MISSING')[:16]}... "
+                        f"params={list(full_params.keys())}"
+                    )
 
                     # Invalidate session and try to re-bootstrap
                     self._session_initialized = False
@@ -671,9 +703,16 @@ class Che168Service:
                 carlist = result["result"]["carlist"]
                 filtered_carlist, removed_count = self.sold_registry.filter_sold(carlist)
                 if removed_count > 0:
-                    result["result"]["carlist"] = filtered_carlist
-                    result["result"]["filtered_sold_count"] = removed_count
-                    logger.info(f"🚫 Filtered {removed_count} sold cars from search results")
+                    if len(filtered_carlist) > 0:
+                        result["result"]["carlist"] = filtered_carlist
+                        result["result"]["filtered_sold_count"] = removed_count
+                        logger.info(f"🚫 Filtered {removed_count} sold cars from search results")
+                    else:
+                        logger.warning(
+                            f"⚠️ Sold filter would remove ALL {removed_count} cars — "
+                            f"skipping to avoid empty results"
+                        )
+                        result["result"]["sold_filter_skipped"] = True
 
             # Cache successful results
             if result.get("success"):

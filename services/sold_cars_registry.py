@@ -184,3 +184,41 @@ class SoldCarsRegistry:
         except Exception as e:
             logger.error(f"Failed to get recent sold IDs: {e}")
             return []
+
+    def purge_old_entries(self, max_age_seconds: int = 604800) -> int:
+        """Delete entries older than max_age_seconds (default 7 days). Returns count removed."""
+        try:
+            cutoff = time.time() - max_age_seconds
+            with sqlite3.connect(str(self.db_path)) as conn:
+                cursor = conn.execute(
+                    "DELETE FROM sold_cars WHERE detected_at < ?", (cutoff,)
+                )
+                removed = cursor.rowcount
+                conn.commit()
+
+            if removed > 0:
+                self._refresh_cache()
+                logger.info(f"Purged {removed} sold car entries older than {max_age_seconds}s")
+
+            return removed
+        except Exception as e:
+            logger.error(f"Failed to purge old sold car entries: {e}")
+            return 0
+
+    def clear_all(self) -> int:
+        """Remove all entries from the registry. Returns count removed."""
+        try:
+            with sqlite3.connect(str(self.db_path)) as conn:
+                cursor = conn.execute("DELETE FROM sold_cars")
+                removed = cursor.rowcount
+                conn.commit()
+
+            with self._lock:
+                self._sold_ids.clear()
+                self._last_cache_refresh = time.time()
+
+            logger.info(f"Cleared all {removed} sold car entries")
+            return removed
+        except Exception as e:
+            logger.error(f"Failed to clear sold cars registry: {e}")
+            return 0
