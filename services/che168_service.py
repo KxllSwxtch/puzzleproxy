@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 # Known signature error messages from Che168 API
 SIGNATURE_ERROR_MESSAGES = ["签名错误", "signature error", "sign error", "invalid sign"]
 
+# Known sold/expired car indicators from Che168 API
+SOLD_CAR_INDICATORS = ["已成交", "已下架", "已售出", "车源已售", "已过期"]
+
 # Che168 API Base URLs (direct access)
 CHE168_SEARCH_API = "https://api2scsou.che168.com"
 CHE168_DETAIL_API = "https://apiuscdt.che168.com"
@@ -200,6 +203,12 @@ class Che168Service:
 
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
+
+    def _is_sold_car_response(self, message: str) -> bool:
+        """Check if API error message indicates the car has been sold/removed"""
+        if not message:
+            return False
+        return any(indicator in message for indicator in SOLD_CAR_INDICATORS)
 
     def _get_proxy_config(self) -> Optional[Dict[str, str]]:
         """Get proxy configuration from proxy_client"""
@@ -868,6 +877,7 @@ class Che168Service:
                 return {
                     "returncode": 1,
                     "message": car_info_response.get("message", "Car info not found"),
+                    "sold": car_info_response.get("sold", False),
                     "result": {
                         "infoid": info_id,
                         "title": None,
@@ -997,9 +1007,11 @@ class Che168Service:
                     "result": json_data["result"]
                 }
             else:
+                original_message = json_data.get("message", "Failed to get car info")
                 return {
                     "returncode": json_data.get("returncode", -1),
-                    "message": json_data.get("message", "Failed to get car info"),
+                    "message": original_message,
+                    "sold": self._is_sold_car_response(original_message),
                     "result": {}
                 }
 
@@ -1008,6 +1020,7 @@ class Che168Service:
             return {
                 "returncode": -1,
                 "message": f"Service error: {str(e)}",
+                "sold": False,
                 "result": {}
             }
 
@@ -1033,9 +1046,11 @@ class Che168Service:
                     "result": json_data["result"]
                 }
             else:
+                original_message = json_data.get("message", "Failed to get car params")
                 return {
                     "returncode": json_data.get("returncode", -1),
-                    "message": json_data.get("message", "Failed to get car params"),
+                    "message": original_message,
+                    "sold": self._is_sold_car_response(original_message),
                     "result": []
                 }
 
@@ -1044,6 +1059,7 @@ class Che168Service:
             return {
                 "returncode": -1,
                 "message": f"Service error: {str(e)}",
+                "sold": False,
                 "result": []
             }
 
