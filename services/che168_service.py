@@ -240,16 +240,50 @@ class Che168Service:
 
     async def _bootstrap_session(self) -> bool:
         """
-        Initialize session by visiting mobile site to obtain valid cookies.
-        This establishes authentication context required for API requests.
+        Initialize session using Playwright to execute JS and obtain valid cookies.
+        Falls back to requests-based approach if Playwright fails.
         """
         await self._rate_limit()
 
         try:
-            logger.info("🔄 Bootstrapping session by visiting m.che168.com...")
+            from playwright.async_api import async_playwright
+
+            logger.info("🔄 Bootstrapping session via Playwright (m.che168.com)...")
+
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context(
+                    user_agent=CHE168_MOBILE_HEADERS['user-agent']
+                )
+                page = await context.new_page()
+                await page.goto(CHE168_MOBILE_SITE + "/", wait_until='networkidle', timeout=15000)
+
+                cookies = await context.cookies()
+                for cookie in cookies:
+                    self.session.cookies.set(cookie['name'], cookie['value'], domain=cookie.get('domain', ''))
+
+                self._session_cookies = {c['name']: c['value'] for c in cookies}
+                self._session_initialized = True
+                self._last_session_time = time.time()
+                self._signature_error_count = 0
+
+                await browser.close()
+                logger.info(f"✅ Session bootstrapped with {len(cookies)} cookies: {list(self._session_cookies.keys())}")
+                return True
+
+        except Exception as e:
+            logger.error(f"❌ Playwright session bootstrap failed: {e}, falling back to requests")
+            return await self._bootstrap_session_requests()
+
+    async def _bootstrap_session_requests(self) -> bool:
+        """
+        Fallback: Initialize session by visiting mobile site with requests.
+        Used when Playwright is not available.
+        """
+        try:
+            logger.info("🔄 Bootstrapping session via requests (m.che168.com)...")
             proxies = self._get_proxy_config()
 
-            # Visit mobile homepage to obtain session cookies
             response = self.session.get(
                 CHE168_MOBILE_SITE + "/",
                 headers=CHE168_MOBILE_HEADERS,
@@ -264,13 +298,13 @@ class Che168Service:
                 self._session_initialized = True
                 self._last_session_time = time.time()
                 self._signature_error_count = 0
-                logger.info(f"✅ Session bootstrapped successfully. Cookies: {list(response.cookies.keys())}")
+                logger.info(f"✅ Session bootstrapped (requests). Cookies: {list(response.cookies.keys())}")
                 return True
             else:
                 logger.warning(f"⚠️ Session bootstrap returned status {response.status_code}")
 
         except Exception as e:
-            logger.error(f"❌ Session bootstrap failed: {e}")
+            logger.error(f"❌ Requests session bootstrap failed: {e}")
 
         return False
 
@@ -365,6 +399,21 @@ class Che168Service:
         cb = self.circuit_breakers.get(endpoint_type, self.circuit_breakers["search"])
         cb.record_failure()
         self.circuit_breaker_failures += 1
+
+    async def _update_static_fallback(self, data_type: str, data: Dict) -> None:
+        """Save successful API responses back to static fallback files to keep them fresh"""
+        file_map = {
+            'brands': STATIC_CACHE_DIR / 'brands.json',
+            'search': STATIC_CACHE_DIR / 'cars.json',
+        }
+        file_path = file_map.get(data_type)
+        if file_path:
+            try:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                logger.info(f"📦 Updated static fallback for '{data_type}'")
+            except Exception as e:
+                logger.warning(f"Failed to update fallback for '{data_type}': {e}")
 
     async def _get_static_fallback(self, data_type: str) -> Optional[Dict]:
         """Load static fallback data when all API attempts fail"""
@@ -616,6 +665,8 @@ class Che168Service:
             # Cache successful results
             if result.get("success"):
                 self.cache.set(cache_key, result, expire=CACHE_TTL_SEARCH)
+                # Update static fallback with fresh data
+                await self._update_static_fallback("search", json_data)
 
             return result
 
@@ -677,6 +728,8 @@ class Che168Service:
             # Cache successful results
             if result.get("returncode") == 0:
                 self.cache.set(cache_key, result, expire=CACHE_TTL_BRANDS)
+                # Update static fallback with fresh data
+                await self._update_static_fallback("brands", json_data)
 
             return result
 
