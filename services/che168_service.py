@@ -10,6 +10,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import time
 import random
 import uuid
@@ -35,7 +36,7 @@ SOLD_CAR_INDICATORS = ["已成交", "已下架", "已售出", "车源已售", "�
 
 # Che168 API signing - common AutoHome mobile web signing pattern
 # The salt wraps sorted parameter concatenation before MD5 hashing
-CHE168_SIGN_SALT = "che168_2sc_secret"  # Placeholder — will test multiple salts
+CHE168_SIGN_SALT = os.environ.get("CHE168_SIGN_SALT", "@7U$aPOE@$")
 
 # Che168 API Base URLs (direct access)
 CHE168_SEARCH_API = "https://api2scsou.che168.com"
@@ -277,7 +278,6 @@ class Che168Service:
                 self._session_cookies = {c['name']: c['value'] for c in cookies}
                 self._session_initialized = True
                 self._last_session_time = time.time()
-                self._signature_error_count = 0
 
                 await browser.close()
                 self._playwright_available = True
@@ -314,7 +314,6 @@ class Che168Service:
                 self._session_cookies = dict(response.cookies)
                 self._session_initialized = True
                 self._last_session_time = time.time()
-                self._signature_error_count = 0
                 logger.info(f"✅ Session bootstrapped (requests). Cookies: {list(response.cookies.keys())}")
                 return True
             else:
@@ -359,7 +358,7 @@ class Che168Service:
         )
         sign_input = f"{CHE168_SIGN_SALT}{param_str}{CHE168_SIGN_SALT}"
         sign_hash = hashlib.md5(sign_input.encode('utf-8')).hexdigest().upper()
-        logger.debug(f"🔏 Sign: keys={sorted_keys}, hash={sign_hash[:8]}...")
+        logger.info(f"🔏 Sign input: {sign_input[:100]}... → {sign_hash[:8]}...")
         return sign_hash
 
     def _build_request_params(self, base_params: Dict[str, Any]) -> Dict[str, Any]:
