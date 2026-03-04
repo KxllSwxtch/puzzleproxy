@@ -46,6 +46,7 @@ from schemas.che168 import (
     TranslationResponse,
 )
 from services.che168_service import Che168Service
+from services.validation_worker import ValidationWorker
 
 # Encar Record imports
 from schemas.encar_record import (
@@ -361,11 +362,22 @@ che168_service = Che168Service(cn_proxy_client)
 
 encar_record_service = EncarRecordService(proxy_client)
 
+# Background validation worker for Che168 sold car detection
+validation_worker = ValidationWorker(che168_service)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background services on server startup"""
+    logger.info("Starting background validation worker...")
+    await validation_worker.start()
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Корректное закрытие сессий при выключении сервера"""
     logger.info("Shutting down server...")
+    await validation_worker.stop()
     if hasattr(proxy_client, "session"):
         proxy_client.session.close()
     logger.info("Sessions closed")
@@ -1618,6 +1630,44 @@ async def translate_che168_text(translation_request: TranslationRequest):
     except Exception as e:
         logger.error(f"Error in che168 translate endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+
+
+@app.post("/api/che168/report-sold/{info_id}")
+async def report_che168_sold(info_id: int):
+    """
+    Report a car as sold from the frontend.
+    Called when the detail page detects a car is sold/delisted.
+    """
+    try:
+        che168_service.sold_registry.mark_sold(info_id, source="frontend_report")
+        return {
+            "success": True,
+            "message": f"Car {info_id} marked as sold",
+            "total_sold": che168_service.sold_registry.get_sold_count()
+        }
+    except Exception as e:
+        logger.error(f"Error reporting sold car {info_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to report sold car: {str(e)}")
+
+
+@app.get("/api/che168/sold-stats")
+async def get_che168_sold_stats():
+    """Get statistics about the sold cars registry."""
+    try:
+        return che168_service.sold_registry.get_stats()
+    except Exception as e:
+        logger.error(f"Error getting sold stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get sold stats: {str(e)}")
+
+
+@app.get("/api/che168/validation-status")
+async def get_che168_validation_status():
+    """Get background validation worker status."""
+    try:
+        return validation_worker.get_status()
+    except Exception as e:
+        logger.error(f"Error getting validation status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get validation status: {str(e)}")
 
 
 @app.get("/api/che168/test")

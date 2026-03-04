@@ -23,6 +23,7 @@ from requests.exceptions import RequestException, Timeout, ConnectionError
 from diskcache import Cache
 
 from parsers.che168_parser import Che168Parser
+from services.sold_cars_registry import SoldCarsRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +176,9 @@ class Che168Service:
         # Track consecutive signature errors
         self._signature_error_count = 0
         self._max_signature_errors = 2
+
+        # Sold cars registry
+        self.sold_registry = SoldCarsRegistry()
 
         # Setup session
         self._setup_session()
@@ -600,6 +604,15 @@ class Che168Service:
 
             result = self.parser.parse_car_search_response(json_data)
 
+            # Filter out known sold cars from search results
+            if result.get("success") and result.get("result", {}).get("carlist"):
+                carlist = result["result"]["carlist"]
+                filtered_carlist, removed_count = self.sold_registry.filter_sold(carlist)
+                if removed_count > 0:
+                    result["result"]["carlist"] = filtered_carlist
+                    result["result"]["filtered_sold_count"] = removed_count
+                    logger.info(f"🚫 Filtered {removed_count} sold cars from search results")
+
             # Cache successful results
             if result.get("success"):
                 self.cache.set(cache_key, result, expire=CACHE_TTL_SEARCH)
@@ -1008,10 +1021,13 @@ class Che168Service:
                 }
             else:
                 original_message = json_data.get("message", "Failed to get car info")
+                is_sold = self._is_sold_car_response(original_message)
+                if is_sold:
+                    self.sold_registry.mark_sold(info_id, source="car_info", message=original_message)
                 return {
                     "returncode": json_data.get("returncode", -1),
                     "message": original_message,
-                    "sold": self._is_sold_car_response(original_message),
+                    "sold": is_sold,
                     "result": {}
                 }
 
@@ -1047,10 +1063,13 @@ class Che168Service:
                 }
             else:
                 original_message = json_data.get("message", "Failed to get car params")
+                is_sold = self._is_sold_car_response(original_message)
+                if is_sold:
+                    self.sold_registry.mark_sold(info_id, source="car_params", message=original_message)
                 return {
                     "returncode": json_data.get("returncode", -1),
                     "message": original_message,
-                    "sold": self._is_sold_car_response(original_message),
+                    "sold": is_sold,
                     "result": []
                 }
 
