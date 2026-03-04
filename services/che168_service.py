@@ -177,6 +177,9 @@ class Che168Service:
         self._signature_error_count = 0
         self._max_signature_errors = 2
 
+        # Playwright availability: None=untested, True=works, False=unavailable
+        self._playwright_available = None
+
         # Sold cars registry
         self.sold_registry = SoldCarsRegistry()
 
@@ -242,8 +245,13 @@ class Che168Service:
         """
         Initialize session using Playwright to execute JS and obtain valid cookies.
         Falls back to requests-based approach if Playwright fails.
+        Caches Playwright availability to avoid repeated failures.
         """
         await self._rate_limit()
+
+        # Skip Playwright if already known to be unavailable
+        if self._playwright_available is False:
+            return await self._bootstrap_session_requests()
 
         try:
             from playwright.async_api import async_playwright
@@ -268,11 +276,13 @@ class Che168Service:
                 self._signature_error_count = 0
 
                 await browser.close()
+                self._playwright_available = True
                 logger.info(f"✅ Session bootstrapped with {len(cookies)} cookies: {list(self._session_cookies.keys())}")
                 return True
 
         except Exception as e:
-            logger.error(f"❌ Playwright session bootstrap failed: {e}, falling back to requests")
+            self._playwright_available = False
+            logger.warning(f"⚠️ Playwright unavailable (will use requests fallback): {type(e).__name__}")
             return await self._bootstrap_session_requests()
 
     async def _bootstrap_session_requests(self) -> bool:
@@ -281,7 +291,10 @@ class Che168Service:
         Used when Playwright is not available.
         """
         try:
-            logger.info("🔄 Bootstrapping session via requests (m.che168.com)...")
+            if self._playwright_available is False:
+                logger.debug("🔄 Bootstrapping session via requests (Playwright unavailable)...")
+            else:
+                logger.info("🔄 Bootstrapping session via requests (m.che168.com)...")
             proxies = self._get_proxy_config()
 
             response = self.session.get(
