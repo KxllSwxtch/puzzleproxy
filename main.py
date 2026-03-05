@@ -91,6 +91,13 @@ PROXY_CONFIGS = [
 # Chinese Proxy Configuration (for Che168 and Chinese sites)
 CN_PROXY_CONFIGS = [
     {
+        "name": "BestProxy Korea",
+        "proxy": "proxy.bestproxy.com:2312",
+        "auth": "bp-bfk2u7wtb3gy_area-KR:zwj1SkzW69P1nhUs",
+        "location": "South Korea",
+        "provider": "bestproxy",
+    },
+    {
         "name": "Oxylabs China",
         "proxy": "cn-pr.oxylabs.io:10000",
         "auth": "customer-puzzle_KbiMl-cc-cn:Puzzle_korea89",
@@ -1773,6 +1780,53 @@ async def get_che168_debug_info():
     except Exception as e:
         logger.error(f"Error getting che168 debug info: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get debug info: {str(e)}")
+
+
+@app.get("/admin/test-cn-proxy")
+async def test_cn_proxy():
+    """Test each CN proxy by making a request to m.che168.com"""
+    results = []
+    for proxy_config in CN_PROXY_CONFIGS:
+        proxy_url = f"http://{proxy_config['auth']}@{proxy_config['proxy']}"
+        proxies = {"http": proxy_url, "https": proxy_url}
+
+        start = time.time()
+        try:
+            resp = requests.get(
+                "https://m.che168.com/",
+                proxies=proxies,
+                headers={
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+                    "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+                },
+                timeout=15,
+                allow_redirects=True,
+            )
+            elapsed = round(time.time() - start, 2)
+            cookies = {c.name: c.value for c in resp.cookies}
+            results.append({
+                "proxy": proxy_config["name"],
+                "location": proxy_config["location"],
+                "status": resp.status_code,
+                "cookies_count": len(cookies),
+                "cookie_names": list(cookies.keys()),
+                "elapsed_seconds": elapsed,
+                "content_length": len(resp.text),
+                "success": resp.status_code == 200,
+            })
+        except Exception as e:
+            elapsed = round(time.time() - start, 2)
+            results.append({
+                "proxy": proxy_config["name"],
+                "location": proxy_config["location"],
+                "status": None,
+                "error": str(e),
+                "elapsed_seconds": elapsed,
+                "success": False,
+            })
+
+    return {"results": results}
 
 
 if __name__ == "__main__":
