@@ -91,13 +91,6 @@ PROXY_CONFIGS = [
 # Chinese Proxy Configuration (for Che168 and Chinese sites)
 CN_PROXY_CONFIGS = [
     {
-        "name": "BestProxy Hong Kong",
-        "proxy": "proxy.bestproxy.com:2312",
-        "auth": "bp-bfk2u7wtb3gy_area-HK:zwj1SkzW69P1nhUs",
-        "location": "Hong Kong",
-        "provider": "bestproxy",
-    },
-    {
         "name": "Oxylabs China",
         "proxy": "cn-pr.oxylabs.io:10000",
         "auth": "customer-puzzle_KbiMl-cc-cn:Puzzle_korea89",
@@ -1784,47 +1777,84 @@ async def get_che168_debug_info():
 
 @app.get("/admin/test-cn-proxy")
 async def test_cn_proxy():
-    """Test each CN proxy by making a request to m.che168.com"""
+    """Test CN proxies: homepage access + API signing verification"""
+    import hashlib as _hashlib
+
+    from services.che168_service import CHE168_SIGN_SALT
+
+    mobile_headers = {
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+    }
+
     results = []
     for proxy_config in CN_PROXY_CONFIGS:
         proxy_url = f"http://{proxy_config['auth']}@{proxy_config['proxy']}"
         proxies = {"http": proxy_url, "https": proxy_url}
+        entry = {"proxy": proxy_config["name"], "location": proxy_config["location"]}
 
+        # Test 1: Homepage access
         start = time.time()
         try:
             resp = requests.get(
                 "https://m.che168.com/",
                 proxies=proxies,
-                headers={
-                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-                    "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-                },
+                headers={**mobile_headers, "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"},
                 timeout=15,
                 allow_redirects=True,
             )
             elapsed = round(time.time() - start, 2)
-            cookies = {c.name: c.value for c in resp.cookies}
-            results.append({
-                "proxy": proxy_config["name"],
-                "location": proxy_config["location"],
+            entry["homepage"] = {
                 "status": resp.status_code,
-                "cookies_count": len(cookies),
-                "cookie_names": list(cookies.keys()),
                 "elapsed_seconds": elapsed,
                 "content_length": len(resp.text),
                 "success": resp.status_code == 200,
-            })
+            }
         except Exception as e:
             elapsed = round(time.time() - start, 2)
-            results.append({
-                "proxy": proxy_config["name"],
-                "location": proxy_config["location"],
-                "status": None,
-                "error": str(e),
+            entry["homepage"] = {"error": str(e), "elapsed_seconds": elapsed, "success": False}
+
+        # Test 2: API signing — call getbrands with real signing
+        start = time.time()
+        try:
+            test_params = {
+                '_appid': '2sc.m', 'v': '11.41.5', '_subappid': '',
+                'deviceid': uuid.uuid4().hex[:32], 'userid': '0',
+                's_pid': '0', 's_cid': '0', '_timestamp': str(int(time.time())),
+            }
+            sorted_str = ''.join(
+                f'{k}{test_params[k]}' for k in sorted(test_params.keys())
+                if test_params[k] is not None
+            )
+            test_params['_sign'] = _hashlib.md5(
+                f'{CHE168_SIGN_SALT}{sorted_str}{CHE168_SIGN_SALT}'.encode()
+            ).hexdigest()
+
+            resp = requests.get(
+                'https://api2scsou.che168.com/api/v2/getbrands',
+                params=test_params,
+                proxies=proxies,
+                timeout=15,
+                headers=mobile_headers,
+            )
+            elapsed = round(time.time() - start, 2)
+            api_data = resp.json()
+            returncode = api_data.get("returncode")
+            message = api_data.get("message", "")
+            brands_count = len(api_data.get("result", {}).get("brandlist", []))
+            entry["api_signing"] = {
+                "returncode": returncode,
+                "message": message,
+                "brands_count": brands_count,
                 "elapsed_seconds": elapsed,
-                "success": False,
-            })
+                "success": returncode == 0,
+            }
+        except Exception as e:
+            elapsed = round(time.time() - start, 2)
+            entry["api_signing"] = {"error": str(e), "elapsed_seconds": elapsed, "success": False}
+
+        results.append(entry)
 
     return {"results": results}
 

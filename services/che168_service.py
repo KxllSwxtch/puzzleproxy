@@ -36,7 +36,7 @@ SOLD_CAR_INDICATORS = ["已成交", "已下架", "已售出", "车源已售", "�
 
 # Che168 API signing - common AutoHome mobile web signing pattern
 # The salt wraps sorted parameter concatenation before MD5 hashing
-CHE168_SIGN_SALT = os.environ.get("CHE168_SIGN_SALT", "@7U$aPOE@$")
+CHE168_SIGN_SALT = os.environ.get("CHE168_SIGN_SALT", "com.rnw.www")
 
 # Che168 API Base URLs (direct access)
 CHE168_SEARCH_API = "https://api2scsou.che168.com"
@@ -181,9 +181,6 @@ class Che168Service:
         # Track consecutive signature errors
         self._signature_error_count = 0
         self._max_signature_errors = 3
-
-        # Alternate signing strategy toggle
-        self._use_sign_v2 = False
 
         # Playwright availability: None=untested, True=works, False=unavailable
         self._playwright_available = None
@@ -368,28 +365,14 @@ class Che168Service:
 
     def _compute_sign(self, params: Dict[str, Any]) -> str:
         """Compute _sign for Che168 API using MD5 of sorted params + salt."""
-        if self._use_sign_v2:
-            return self._compute_sign_v2(params)
         sorted_keys = sorted(params.keys())
         param_str = "".join(
             f"{k}{params[k]}" for k in sorted_keys
-            if params[k] is not None and str(params[k]) != ""
+            if params[k] is not None
         )
         sign_input = f"{CHE168_SIGN_SALT}{param_str}{CHE168_SIGN_SALT}"
-        sign_hash = hashlib.md5(sign_input.encode('utf-8')).hexdigest().upper()
-        logger.debug(f"Sign v1: {sign_input[:80]}... -> {sign_hash[:8]}...")
-        return sign_hash
-
-    def _compute_sign_v2(self, params: Dict[str, Any]) -> str:
-        """Alternative sign: exclude underscore-prefixed params from hash"""
-        sorted_keys = sorted(params.keys())
-        param_str = "".join(
-            f"{k}{params[k]}" for k in sorted_keys
-            if not k.startswith('_') and params[k] is not None and str(params[k]) != ""
-        )
-        sign_input = f"{CHE168_SIGN_SALT}{param_str}{CHE168_SIGN_SALT}"
-        sign_hash = hashlib.md5(sign_input.encode('utf-8')).hexdigest().upper()
-        logger.debug(f"Sign v2: {sign_input[:80]}... -> {sign_hash[:8]}...")
+        sign_hash = hashlib.md5(sign_input.encode('utf-8')).hexdigest()
+        logger.debug(f"Sign: {sign_input[:80]}... -> {sign_hash[:8]}...")
         return sign_hash
 
     def _build_request_params(self, base_params: Dict[str, Any]) -> Dict[str, Any]:
@@ -399,6 +382,7 @@ class Che168Service:
         # Required system params
         params['_appid'] = '2sc.m'
         params['v'] = '11.41.5'
+        params['_subappid'] = ''
         params['deviceid'] = self._get_device_id()
         params['userid'] = '0'
         params['s_pid'] = '0'
@@ -593,14 +577,9 @@ class Che168Service:
                 if self._is_signature_error(json_data):
                     self._signature_error_count += 1
                     logger.warning(
-                        f"Signature error (count: {self._signature_error_count}, "
-                        f"sign_v2={self._use_sign_v2}): "
+                        f"Signature error (count: {self._signature_error_count}): "
                         f"{json_data.get('message', 'Unknown')}"
                     )
-
-                    # Toggle signing strategy on signature error
-                    self._use_sign_v2 = not self._use_sign_v2
-                    logger.info(f"Switched to sign_v{'2' if self._use_sign_v2 else '1'}")
 
                     # Invalidate session and try to re-bootstrap
                     self._session_initialized = False
@@ -1324,7 +1303,6 @@ class Che168Service:
                 "device_id": self._device_id[:8] + "...",
                 "cookies_count": len(self._session_cookies) if self._session_cookies else 0,
                 "signature_errors": self._signature_error_count,
-                "sign_version": "v2" if self._use_sign_v2 else "v1",
                 "using_static_fallback": self._signature_error_count >= self._max_signature_errors,
             },
             "circuit_breakers": circuit_breaker_statuses,
@@ -1359,7 +1337,6 @@ class Che168Service:
         self._session_cookies = None
         self._last_session_time = 0
         self._signature_error_count = 0
-        self._use_sign_v2 = False
         logger.info("Session state reset - will re-bootstrap on next request")
 
     def reset_all(self):
@@ -1394,7 +1371,6 @@ class Che168Service:
             if self._signature_error_count >= self._max_signature_errors or not self._session_initialized:
                 logger.info("Periodic session recovery attempt...")
                 self._signature_error_count = 0
-                self._use_sign_v2 = False
                 self._session_initialized = False
                 # Reset circuit breakers too so we actually retry the API
                 self.reset_circuit_breakers()
