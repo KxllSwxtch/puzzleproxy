@@ -50,7 +50,7 @@ STATIC_CACHE_DIR = Path(__file__).parent.parent / "Che168"
 CACHE_TTL_BRANDS = 86400      # 24 hours
 CACHE_TTL_MODELS = 43200      # 12 hours
 CACHE_TTL_YEARS = 43200       # 12 hours
-CACHE_TTL_SEARCH = 900        # 15 minutes
+CACHE_TTL_SEARCH = 300        # 5 minutes (reduced from 15 to avoid stale data)
 CACHE_TTL_CAR_DETAIL = 1800   # 30 minutes
 
 # Che168-specific headers for mobile API access
@@ -180,7 +180,10 @@ class Che168Service:
 
         # Track consecutive signature errors
         self._signature_error_count = 0
-        self._max_signature_errors = 5
+        self._max_signature_errors = 3
+
+        # Alternate signing strategy toggle
+        self._use_sign_v2 = False
 
         # Playwright availability: None=untested, True=works, False=unavailable
         self._playwright_available = None
@@ -248,46 +251,61 @@ class Che168Service:
 
     async def _bootstrap_session(self) -> bool:
         """
-        Initialize session using Playwright to execute JS and obtain valid cookies.
-        Falls back to requests-based approach if Playwright fails.
-        Caches Playwright availability to avoid repeated failures.
+        Initialize session with multi-strategy approach:
+        1. Try requests-based bootstrap (with CN proxy)
+        2. Try Playwright (local dev only)
+        3. Fall back to minimal/cookieless mode (sign-only)
         """
         await self._rate_limit()
 
-        # Skip Playwright if already known to be unavailable
-        if self._playwright_available is False:
-            return await self._bootstrap_session_requests()
+        # Strategy 1: Requests-based bootstrap
+        if await self._bootstrap_session_requests():
+            return True
 
-        try:
-            from playwright.async_api import async_playwright
+        # Strategy 2: Playwright (skip if known unavailable)
+        if self._playwright_available is not False:
+            try:
+                from playwright.async_api import async_playwright
 
-            logger.info("🔄 Bootstrapping session via Playwright (m.che168.com)...")
+                logger.info("Bootstrapping session via Playwright (m.che168.com)...")
 
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
-                context = await browser.new_context(
-                    user_agent=CHE168_MOBILE_HEADERS['user-agent']
-                )
-                page = await context.new_page()
-                await page.goto(CHE168_MOBILE_SITE + "/", wait_until='networkidle', timeout=15000)
+                async with async_playwright() as p:
+                    browser = await p.chromium.launch(headless=True)
+                    context = await browser.new_context(
+                        user_agent=CHE168_MOBILE_HEADERS['user-agent']
+                    )
+                    page = await context.new_page()
+                    await page.goto(CHE168_MOBILE_SITE + "/", wait_until='networkidle', timeout=15000)
 
-                cookies = await context.cookies()
-                for cookie in cookies:
-                    self.session.cookies.set(cookie['name'], cookie['value'], domain=cookie.get('domain', ''))
+                    cookies = await context.cookies()
+                    for cookie in cookies:
+                        self.session.cookies.set(cookie['name'], cookie['value'], domain=cookie.get('domain', ''))
 
-                self._session_cookies = {c['name']: c['value'] for c in cookies}
-                self._session_initialized = True
-                self._last_session_time = time.time()
+                    self._session_cookies = {c['name']: c['value'] for c in cookies}
+                    self._session_initialized = True
+                    self._last_session_time = time.time()
 
-                await browser.close()
-                self._playwright_available = True
-                logger.info(f"✅ Session bootstrapped with {len(cookies)} cookies: {list(self._session_cookies.keys())}")
-                return True
+                    await browser.close()
+                    self._playwright_available = True
+                    logger.info(f"Session bootstrapped via Playwright with {len(cookies)} cookies")
+                    return True
 
-        except Exception as e:
-            self._playwright_available = False
-            logger.warning(f"⚠️ Playwright unavailable (will use requests fallback): {type(e).__name__}")
-            return await self._bootstrap_session_requests()
+            except Exception as e:
+                self._playwright_available = False
+                logger.warning(f"Playwright unavailable: {type(e).__name__}")
+
+        # Strategy 3: Minimal/cookieless mode
+        return await self._bootstrap_session_minimal()
+
+    async def _bootstrap_session_minimal(self) -> bool:
+        """Minimal session: just generate a device ID and mark as initialized.
+        Some Che168 endpoints work with just proper signing, no cookies needed."""
+        self._device_id = str(uuid.uuid4()).replace('-', '')[:32]
+        self._session_initialized = True
+        self._last_session_time = time.time()
+        self._session_cookies = {}
+        logger.info("Minimal session initialized (no cookies, sign-only mode)")
+        return True
 
     async def _bootstrap_session_requests(self) -> bool:
         """
@@ -350,15 +368,28 @@ class Che168Service:
 
     def _compute_sign(self, params: Dict[str, Any]) -> str:
         """Compute _sign for Che168 API using MD5 of sorted params + salt."""
+        if self._use_sign_v2:
+            return self._compute_sign_v2(params)
         sorted_keys = sorted(params.keys())
-        # Format: key1value1key2value2... (no separators, no = signs)
         param_str = "".join(
             f"{k}{params[k]}" for k in sorted_keys
             if params[k] is not None and str(params[k]) != ""
         )
         sign_input = f"{CHE168_SIGN_SALT}{param_str}{CHE168_SIGN_SALT}"
         sign_hash = hashlib.md5(sign_input.encode('utf-8')).hexdigest().upper()
-        logger.info(f"🔏 Sign input: {sign_input[:100]}... → {sign_hash[:8]}...")
+        logger.debug(f"Sign v1: {sign_input[:80]}... -> {sign_hash[:8]}...")
+        return sign_hash
+
+    def _compute_sign_v2(self, params: Dict[str, Any]) -> str:
+        """Alternative sign: exclude underscore-prefixed params from hash"""
+        sorted_keys = sorted(params.keys())
+        param_str = "".join(
+            f"{k}{params[k]}" for k in sorted_keys
+            if not k.startswith('_') and params[k] is not None and str(params[k]) != ""
+        )
+        sign_input = f"{CHE168_SIGN_SALT}{param_str}{CHE168_SIGN_SALT}"
+        sign_hash = hashlib.md5(sign_input.encode('utf-8')).hexdigest().upper()
+        logger.debug(f"Sign v2: {sign_input[:80]}... -> {sign_hash[:8]}...")
         return sign_hash
 
     def _build_request_params(self, base_params: Dict[str, Any]) -> Dict[str, Any]:
@@ -459,10 +490,19 @@ class Che168Service:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    logger.info(f"📦 Loaded static fallback data for '{data_type}' from {file_path}")
+                    # Add file age metadata
+                    file_age_seconds = time.time() - file_path.stat().st_mtime
+                    data["_meta"] = {
+                        "data_source": "static_fallback",
+                        "is_stale": True,
+                        "timestamp": time.time(),
+                        "file_age_seconds": int(file_age_seconds),
+                        "file_age_hours": round(file_age_seconds / 3600, 1),
+                    }
+                    logger.info(f"Loaded static fallback for '{data_type}' (age: {data['_meta']['file_age_hours']}h)")
                     return data
             except Exception as e:
-                logger.error(f"❌ Failed to load static fallback for '{data_type}': {e}")
+                logger.error(f"Failed to load static fallback for '{data_type}': {e}")
 
         return None
 
@@ -553,17 +593,20 @@ class Che168Service:
                 if self._is_signature_error(json_data):
                     self._signature_error_count += 1
                     logger.warning(
-                        f"⚠️ Signature error (count: {self._signature_error_count}): "
-                        f"{json_data.get('message', 'Unknown')}. "
-                        f"sign={full_params.get('_sign', 'MISSING')[:16]}... "
-                        f"params={list(full_params.keys())}"
+                        f"Signature error (count: {self._signature_error_count}, "
+                        f"sign_v2={self._use_sign_v2}): "
+                        f"{json_data.get('message', 'Unknown')}"
                     )
+
+                    # Toggle signing strategy on signature error
+                    self._use_sign_v2 = not self._use_sign_v2
+                    logger.info(f"Switched to sign_v{'2' if self._use_sign_v2 else '1'}")
 
                     # Invalidate session and try to re-bootstrap
                     self._session_initialized = False
 
                     if attempt < max_retries:
-                        logger.info("🔄 Attempting to refresh session...")
+                        logger.info("Attempting to refresh session...")
                         await self._bootstrap_session()
                         full_params = self._build_request_params(params)
                         url = self._build_direct_url(base_url, endpoint_path, full_params)
@@ -682,7 +725,9 @@ class Che168Service:
             if pageindex > 1:
                 cached = self.cache.get(cache_key)
                 if cached:
-                    logger.debug(f"📋 Cache hit for search: {cache_key}")
+                    logger.debug(f"Cache hit for search: {cache_key}")
+                    if "meta" not in cached:
+                        cached["meta"] = {"data_source": "disk_cache", "timestamp": time.time()}
                     return cached
 
             # Make request
@@ -713,25 +758,40 @@ class Che168Service:
                         )
                         result["result"]["sold_filter_skipped"] = True
 
+            # Detect if _make_request returned static fallback data
+            is_from_fallback = json_data.get("_meta", {}).get("data_source") == "static_fallback"
+
             # Cache successful results
             if result.get("success"):
-                self.cache.set(cache_key, result, expire=CACHE_TTL_SEARCH)
-                # Update static fallback with fresh data
-                await self._update_static_fallback("search", json_data)
+                if is_from_fallback:
+                    result["meta"] = json_data["_meta"]
+                else:
+                    result["meta"] = {"data_source": "live_api", "timestamp": time.time()}
+                    self.cache.set(cache_key, result, expire=CACHE_TTL_SEARCH)
+                    # Update static fallback with fresh data
+                    await self._update_static_fallback("search", json_data)
+                    # Pre-cache car basic info from search results for detail pages
+                    self._precache_cars_from_search(result)
 
             return result
 
         except Exception as e:
-            logger.error(f"❌ Error in search_cars: {str(e)}")
+            logger.error(f"Error in search_cars: {str(e)}")
 
             # Try static fallback on exception
             try:
                 fallback_data = await self._get_static_fallback("search")
                 if fallback_data:
-                    logger.info("📦 Using static fallback for search due to exception")
-                    return self.parser.parse_car_search_response(fallback_data)
+                    logger.info("Using static fallback for search due to exception")
+                    parsed = self.parser.parse_car_search_response(fallback_data)
+                    parsed["meta"] = fallback_data.get("_meta", {
+                        "data_source": "static_fallback",
+                        "is_stale": True,
+                        "timestamp": time.time(),
+                    })
+                    return parsed
             except Exception as fallback_error:
-                logger.error(f"❌ Static fallback also failed: {fallback_error}")
+                logger.error(f"Static fallback also failed: {fallback_error}")
 
             return {
                 "returncode": 1,
@@ -1264,6 +1324,7 @@ class Che168Service:
                 "device_id": self._device_id[:8] + "...",
                 "cookies_count": len(self._session_cookies) if self._session_cookies else 0,
                 "signature_errors": self._signature_error_count,
+                "sign_version": "v2" if self._use_sign_v2 else "v1",
                 "using_static_fallback": self._signature_error_count >= self._max_signature_errors,
             },
             "circuit_breakers": circuit_breaker_statuses,
@@ -1298,7 +1359,8 @@ class Che168Service:
         self._session_cookies = None
         self._last_session_time = 0
         self._signature_error_count = 0
-        logger.info("🔄 Session state reset - will re-bootstrap on next request")
+        self._use_sign_v2 = False
+        logger.info("Session state reset - will re-bootstrap on next request")
 
     def reset_all(self):
         """Reset all state: circuit breakers, session, and signature errors"""
@@ -1306,6 +1368,40 @@ class Che168Service:
         self.reset_session()
         self.clear_cache()
         logger.info("🔄 All service state reset")
+
+    def _precache_cars_from_search(self, search_result: Dict) -> None:
+        """Pre-populate car detail cache from search results for faster detail page loads"""
+        try:
+            carlist = search_result.get("result", {}).get("carlist", [])
+            cached_count = 0
+            for car in carlist:
+                infoid = car.get("infoid")
+                if not infoid:
+                    continue
+                cache_key = self._get_cache_key("car_basic", {"info_id": infoid})
+                if self.cache.get(cache_key) is None:
+                    self.cache.set(cache_key, car, expire=CACHE_TTL_SEARCH * 2)
+                    cached_count += 1
+            if cached_count > 0:
+                logger.debug(f"Pre-cached {cached_count} car basic info entries from search")
+        except Exception as e:
+            logger.debug(f"Error pre-caching car info: {e}")
+
+    async def start_session_recovery_loop(self):
+        """Background coroutine: attempt session re-bootstrap every 5 minutes when in error state"""
+        while True:
+            await asyncio.sleep(300)  # 5 minutes
+            if self._signature_error_count >= self._max_signature_errors or not self._session_initialized:
+                logger.info("Periodic session recovery attempt...")
+                self._signature_error_count = 0
+                self._use_sign_v2 = False
+                self._session_initialized = False
+                # Reset circuit breakers too so we actually retry the API
+                self.reset_circuit_breakers()
+                try:
+                    await self._bootstrap_session()
+                except Exception as e:
+                    logger.warning(f"Session recovery failed: {e}")
 
     def health_check(self) -> Dict[str, Any]:
         """Health check for the service"""

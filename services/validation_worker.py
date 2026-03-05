@@ -61,6 +61,9 @@ class ValidationWorker:
         # Wait 30 seconds before first run to let the service warm up
         await asyncio.sleep(30)
 
+        # Track consecutive empty cycles for warning
+        self._empty_cycles = 0
+
         while self._running:
             try:
                 await self._run_validation_cycle()
@@ -74,6 +77,13 @@ class ValidationWorker:
                             logger.info(f"Auto-purged {purged} old sold car entries")
                     except Exception as purge_err:
                         logger.debug(f"Auto-purge error: {purge_err}")
+
+                # Warn if worker runs many cycles with 0 validations
+                if self._cycle_count > 0 and self._cycle_count % 50 == 0 and self._validated_count == 0:
+                    logger.warning(
+                        f"Validation worker: {self._cycle_count} cycles completed but 0 validations performed. "
+                        f"Cache may be empty or API may be failing silently."
+                    )
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -135,8 +145,10 @@ class ValidationWorker:
                 await asyncio.sleep(2)
 
     def _get_cached_car_ids(self) -> list[int]:
-        """Extract car IDs from the diskcache search results."""
+        """Extract car IDs from diskcache search results and static fallback."""
         car_ids = set()
+
+        # Source 1: diskcache search results
         try:
             cache = self.che168_service.cache
             for key in cache:
@@ -152,6 +164,26 @@ class ValidationWorker:
                     continue
         except Exception as e:
             logger.debug(f"Error reading cache for validation: {e}")
+
+        # Source 2: static fallback file (if cache is empty)
+        if not car_ids:
+            try:
+                from pathlib import Path
+                import json
+                static_file = Path(__file__).parent.parent / "Che168" / "cars.json"
+                if static_file.exists():
+                    with open(static_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    result = data.get("result", {})
+                    carlist = result.get("carlist", [])
+                    for car in carlist[:100]:  # Limit to first 100 from static
+                        infoid = car.get("infoid")
+                        if infoid:
+                            car_ids.add(int(infoid))
+                    if car_ids:
+                        logger.info(f"Sourced {len(car_ids)} car IDs from static fallback for validation")
+            except Exception as e:
+                logger.debug(f"Error reading static fallback for validation: {e}")
 
         return list(car_ids)
 

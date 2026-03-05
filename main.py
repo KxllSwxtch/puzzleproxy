@@ -79,16 +79,23 @@ PROXY_CONFIGS = [
         "location": "South Korea",
         "provider": "oxylabs",
     },
+    {
+        "name": "BestProxy Korea",
+        "proxy": "proxy.bestproxy.com:2312",
+        "auth": "bp-bfk2u7wtb3gy_area-KR:zwj1SkzW69P1nhUs",
+        "location": "South Korea",
+        "provider": "bestproxy",
+    },
 ]
 
 # Chinese Proxy Configuration (for Che168 and Chinese sites)
 CN_PROXY_CONFIGS = [
     {
-        "name": "Oxylabs China",
-        "proxy": "cn-pr.oxylabs.io:10000",
-        "auth": "customer-puzzle_KbiMl-cc-cn:Puzzle_korea89",
+        "name": "BestProxy China",
+        "proxy": "proxy.bestproxy.com:2312",
+        "auth": "bp-bfk2u7wtb3gy_area-CN:zwj1SkzW69P1nhUs",
         "location": "China",
-        "provider": "oxylabs",
+        "provider": "bestproxy",
     },
 ]
 
@@ -371,6 +378,8 @@ async def startup_event():
     """Start background services on server startup"""
     logger.info("Starting background validation worker...")
     await validation_worker.start()
+    logger.info("Starting Che168 session recovery loop...")
+    asyncio.create_task(che168_service.start_session_recovery_loop())
 
 
 @app.on_event("shutdown")
@@ -1726,6 +1735,44 @@ async def test_che168_service():
             "message": f"Service test failed: {str(e)}",
             "result": {"status": "unhealthy"}
         }
+
+
+@app.post("/api/che168/admin/reset-session")
+async def reset_che168_session():
+    """Force session reset and re-bootstrap"""
+    try:
+        che168_service.reset_session()
+        success = await che168_service._bootstrap_session()
+        return {
+            "success": success,
+            "message": "Session reset and re-bootstrapped" if success else "Session reset but bootstrap failed",
+            "session_info": che168_service.get_session_info()["session_bootstrap"],
+        }
+    except Exception as e:
+        logger.error(f"Error resetting che168 session: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to reset session: {str(e)}")
+
+
+@app.get("/api/che168/debug-info")
+async def get_che168_debug_info():
+    """Detailed diagnostics: session state, signature errors, circuit breakers, proxy status"""
+    try:
+        session_info = che168_service.get_session_info()
+        validation_status = validation_worker.get_status()
+        sold_stats = che168_service.sold_registry.get_stats()
+
+        return {
+            "service": session_info,
+            "validation_worker": validation_status,
+            "sold_registry": sold_stats,
+            "proxy_config": {
+                "cn_proxy_count": len(CN_PROXY_CONFIGS),
+                "cn_proxy_names": [p["name"] for p in CN_PROXY_CONFIGS],
+            },
+        }
+    except Exception as e:
+        logger.error(f"Error getting che168 debug info: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get debug info: {str(e)}")
 
 
 if __name__ == "__main__":

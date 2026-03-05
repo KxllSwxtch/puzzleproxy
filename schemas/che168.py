@@ -202,6 +202,7 @@ class Che168SearchResponse(BaseModel):
     returncode: int = Field(description="Return code (0=success)")
     message: str = Field(description="Response message")
     result: Che168SearchResult = Field(description="Search data")
+    meta: Optional[Dict[str, Any]] = Field(default=None, description="Data source metadata")
 
 
 class Che168SearchFilters(BaseModel):
