@@ -91,10 +91,10 @@ PROXY_CONFIGS = [
 # Chinese Proxy Configuration (for Che168 and Chinese sites)
 CN_PROXY_CONFIGS = [
     {
-        "name": "BestProxy Korea",
+        "name": "BestProxy Hong Kong",
         "proxy": "proxy.bestproxy.com:2312",
-        "auth": "bp-bfk2u7wtb3gy_area-KR:zwj1SkzW69P1nhUs",
-        "location": "South Korea",
+        "auth": "bp-bfk2u7wtb3gy_area-HK:zwj1SkzW69P1nhUs",
+        "location": "Hong Kong",
         "provider": "bestproxy",
     },
     {
