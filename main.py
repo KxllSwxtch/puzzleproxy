@@ -91,11 +91,11 @@ PROXY_CONFIGS = [
 # Chinese Proxy Configuration (for Che168 and Chinese sites)
 CN_PROXY_CONFIGS = [
     {
-        "name": "BestProxy China",
-        "proxy": "proxy.bestproxy.com:2312",
-        "auth": "bp-bfk2u7wtb3gy_area-CN:zwj1SkzW69P1nhUs",
+        "name": "Oxylabs China",
+        "proxy": "cn-pr.oxylabs.io:10000",
+        "auth": "customer-puzzle_KbiMl-cc-cn:Puzzle_korea89",
         "location": "China",
-        "provider": "bestproxy",
+        "provider": "oxylabs",
     },
 ]
 
