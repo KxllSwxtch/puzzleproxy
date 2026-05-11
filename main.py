@@ -73,16 +73,9 @@ app.add_middleware(
 # Конфигурация residential прокси (Korean - for KBChaChaCha and Korean sites)
 PROXY_CONFIGS = [
     {
-        "name": "Oxylabs Proxy",
-        "proxy": "pr.oxylabs.io:7777",
-        "auth": "customer-puzzle_KbiMl-cc-kr:Puzzle_korea89",
-        "location": "South Korea",
-        "provider": "oxylabs",
-    },
-    {
         "name": "BestProxy Korea",
         "proxy": "proxy.bestproxy.com:2312",
-        "auth": "bp-bfk2u7wtb3gy_area-KR:zwj1SkzW69P1nhUs",
+        "auth": "bp-hjmqitj9abkx_area-KR:B1Tdf3CVWjhrwbp0",
         "location": "South Korea",
         "provider": "bestproxy",
     },
