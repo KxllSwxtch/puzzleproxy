@@ -75,7 +75,7 @@ PROXY_CONFIGS = [
     {
         "name": "BestProxy Korea",
         "proxy": "proxy.bestproxy.com:2312",
-        "auth": "bp-hjmqitj9abkx_area-KR:B1Tdf3CVWjhrwbp0",
+        "auth": "bp-owumonoh1pov_area-KR:RLPsgW90MfHBoiRy",
         "location": "South Korea",
         "provider": "bestproxy",
     },
